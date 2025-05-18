@@ -153,27 +153,23 @@ jobs:
           echo "Found team ID: $TEAM_ID"
         fi
         
-        # Create exportOptions.plist
-        cat > ./build/exportOptions.plist << 'EOT'
-<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<plist version="1.0">
-<dict>
-    <key>method</key>
-    <string>development</string>
-    <key>teamID</key>
-    <string>$TEAM_ID</string>
-    <key>compileBitcode</key>
-    <false/>
-    <key>uploadBitcode</key>
-    <false/>
-    <key>uploadSymbols</key>
-    <true/>
-</dict>
-</plist>
-EOT
-        # Replace $TEAM_ID with actual value
-        sed -i.bak "s/\$TEAM_ID/$TEAM_ID/g" ./build/exportOptions.plist
+        # Create exportOptions.plist using echo statements
+        echo '<?xml version="1.0" encoding="UTF-8"?>' > ./build/exportOptions.plist
+        echo '<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">' >> ./build/exportOptions.plist
+        echo '<plist version="1.0">' >> ./build/exportOptions.plist
+        echo '<dict>' >> ./build/exportOptions.plist
+        echo '    <key>method</key>' >> ./build/exportOptions.plist
+        echo '    <string>development</string>' >> ./build/exportOptions.plist
+        echo '    <key>teamID</key>' >> ./build/exportOptions.plist
+        echo "    <string>$TEAM_ID</string>" >> ./build/exportOptions.plist
+        echo '    <key>compileBitcode</key>' >> ./build/exportOptions.plist
+        echo '    <false/>' >> ./build/exportOptions.plist
+        echo '    <key>uploadBitcode</key>' >> ./build/exportOptions.plist
+        echo '    <false/>' >> ./build/exportOptions.plist
+        echo '    <key>uploadSymbols</key>' >> ./build/exportOptions.plist
+        echo '    <true/>' >> ./build/exportOptions.plist
+        echo '</dict>' >> ./build/exportOptions.plist
+        echo '</plist>' >> ./build/exportOptions.plist
         
         # Verify the file was created correctly
         if [ -f "./build/exportOptions.plist" ]; then
@@ -212,23 +208,21 @@ EOT
           if [ ! -f "./build/exportOptions.plist" ]; then
             echo "exportOptions.plist not found. Creating a default one..." | tee -a ./build-logs/archive_build.log
             
-            # Create a default exportOptions.plist
-            cat > ./build/exportOptions.plist << 'EOT'
-<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<plist version="1.0">
-<dict>
-    <key>method</key>
-    <string>development</string>
-    <key>compileBitcode</key>
-    <false/>
-    <key>uploadBitcode</key>
-    <false/>
-    <key>uploadSymbols</key>
-    <true/>
-</dict>
-</plist>
-EOT
+            # Create a default exportOptions.plist using echo statements
+            echo '<?xml version="1.0" encoding="UTF-8"?>' > ./build/exportOptions.plist
+            echo '<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">' >> ./build/exportOptions.plist
+            echo '<plist version="1.0">' >> ./build/exportOptions.plist
+            echo '<dict>' >> ./build/exportOptions.plist
+            echo '    <key>method</key>' >> ./build/exportOptions.plist
+            echo '    <string>development</string>' >> ./build/exportOptions.plist
+            echo '    <key>compileBitcode</key>' >> ./build/exportOptions.plist
+            echo '    <false/>' >> ./build/exportOptions.plist
+            echo '    <key>uploadBitcode</key>' >> ./build/exportOptions.plist
+            echo '    <false/>' >> ./build/exportOptions.plist
+            echo '    <key>uploadSymbols</key>' >> ./build/exportOptions.plist
+            echo '    <true/>' >> ./build/exportOptions.plist
+            echo '</dict>' >> ./build/exportOptions.plist
+            echo '</plist>' >> ./build/exportOptions.plist
           fi
           
           # Create IPA file
@@ -246,17 +240,15 @@ EOT
             # Try alternative export method
             echo "Trying alternative export method..." | tee -a ./build-logs/archive_build.log
             
-            # Create a simpler exportOptions.plist
-            cat > ./build/exportOptions.plist << 'EOT'
-<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<plist version="1.0">
-<dict>
-    <key>method</key>
-    <string>ad-hoc</string>
-</dict>
-</plist>
-EOT
+            # Create a simpler exportOptions.plist using echo statements
+            echo '<?xml version="1.0" encoding="UTF-8"?>' > ./build/exportOptions.plist
+            echo '<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">' >> ./build/exportOptions.plist
+            echo '<plist version="1.0">' >> ./build/exportOptions.plist
+            echo '<dict>' >> ./build/exportOptions.plist
+            echo '    <key>method</key>' >> ./build/exportOptions.plist
+            echo '    <string>ad-hoc</string>' >> ./build/exportOptions.plist
+            echo '</dict>' >> ./build/exportOptions.plist
+            echo '</plist>' >> ./build/exportOptions.plist
             
             xcodebuild -exportArchive -archivePath ./build/russ5.xcarchive -exportPath ./build -exportOptionsPlist ./build/exportOptions.plist | tee -a ./build-logs/export_archive_alt.log || true
           fi
@@ -304,16 +296,14 @@ EOT
         if [ -n "$APP_URL" ] && [ "$APP_URL" != "null" ]; then
           echo "App uploaded to BrowserStack. URL: $APP_URL" | tee -a ./browserstack-results/test_log.txt
           
-          # Create a test spec for BrowserStack
-          cat > ./build/test/browserstack.yml << EOT
-# BrowserStack configuration file
-app: $APP_URL
-devices:
-  - iPhone 14 Pro-16
-  - iPhone 13-15
-project: "russ5"
-testSuite: "./build/test/UITests.ipa"
-EOT
+          # Create a test spec for BrowserStack using echo statements
+          echo "# BrowserStack configuration file" > ./build/test/browserstack.yml
+          echo "app: $APP_URL" >> ./build/test/browserstack.yml
+          echo "devices:" >> ./build/test/browserstack.yml
+          echo "  - iPhone 14 Pro-16" >> ./build/test/browserstack.yml
+          echo "  - iPhone 13-15" >> ./build/test/browserstack.yml
+          echo "project: \"russ5\"" >> ./build/test/browserstack.yml
+          echo "testSuite: \"./build/test/UITests.ipa\"" >> ./build/test/browserstack.yml
           
           # Save the test spec for debugging
           cp ./build/test/browserstack.yml ./browserstack-results/test_spec.yml
@@ -472,35 +462,31 @@ EOT
         echo "=== Build Directory Content ===" > ./build-logs/project/build_dir.log
         find ./build -type f | sort >> ./build-logs/project/build_dir.log 2>&1 || true
         
-        # Create a build summary markdown file
-        cat > ./build-logs/build_summary.md << 'EOT'
-# Build Summary
-
-## Environment
-- macOS: $(sw_vers -productVersion 2>/dev/null || echo "Unknown")
-- Xcode: $(xcodebuild -version 2>/dev/null | head -n 1 || echo "Unknown")
-- Ruby: $(ruby --version 2>/dev/null || echo "Unknown")
-- Node: $(node --version 2>/dev/null || echo "Unknown")
-
-## Build Status
-- Checkout: ✅
-- Ruby Setup: ✅
-- Dependencies: ✅
-- Xcode Project Format Check: ✅
-- Build: $([ -d "./build/russ5.xcarchive" ] && echo "✅" || echo "❌")
-- IPA Creation: $([ -f "./build/russ5.ipa" ] && echo "✅" || echo "❌")
-- BrowserStack Testing: $([ -f "./browserstack-results/test_summary.txt" ] && echo "✅" || echo "❌")
-
-## Issues Found
-$(find ~/Library/Developer/Xcode/DerivedData -name "*.log" -type f -exec grep -l "error:" {} \; | wc -l | xargs -I{} echo "- {} error logs found")
-
-## Next Steps
-- Check the detailed logs for more information
-- Review Xcode project settings
-- Verify code signing configuration
-EOT
-        # Remove quotes to allow variable expansion
-        sed -i.bak 's/\$(/$(/' ./build-logs/build_summary.md
+        # Create a build summary markdown file using echo statements
+        echo "# Build Summary" > ./build-logs/build_summary.md
+        echo "" >> ./build-logs/build_summary.md
+        echo "## Environment" >> ./build-logs/build_summary.md
+        echo "- macOS: $(sw_vers -productVersion 2>/dev/null || echo "Unknown")" >> ./build-logs/build_summary.md
+        echo "- Xcode: $(xcodebuild -version 2>/dev/null | head -n 1 || echo "Unknown")" >> ./build-logs/build_summary.md
+        echo "- Ruby: $(ruby --version 2>/dev/null || echo "Unknown")" >> ./build-logs/build_summary.md
+        echo "- Node: $(node --version 2>/dev/null || echo "Unknown")" >> ./build-logs/build_summary.md
+        echo "" >> ./build-logs/build_summary.md
+        echo "## Build Status" >> ./build-logs/build_summary.md
+        echo "- Checkout: ✅" >> ./build-logs/build_summary.md
+        echo "- Ruby Setup: ✅" >> ./build-logs/build_summary.md
+        echo "- Dependencies: ✅" >> ./build-logs/build_summary.md
+        echo "- Xcode Project Format Check: ✅" >> ./build-logs/build_summary.md
+        echo "- Build: $([ -d "./build/russ5.xcarchive" ] && echo "✅" || echo "❌")" >> ./build-logs/build_summary.md
+        echo "- IPA Creation: $([ -f "./build/russ5.ipa" ] && echo "✅" || echo "❌")" >> ./build-logs/build_summary.md
+        echo "- BrowserStack Testing: $([ -f "./browserstack-results/test_summary.txt" ] && echo "✅" || echo "❌")" >> ./build-logs/build_summary.md
+        echo "" >> ./build-logs/build_summary.md
+        echo "## Issues Found" >> ./build-logs/build_summary.md
+        echo "$(find ~/Library/Developer/Xcode/DerivedData -name "*.log" -type f -exec grep -l "error:" {} \; | wc -l | xargs -I{} echo "- {} error logs found")" >> ./build-logs/build_summary.md
+        echo "" >> ./build-logs/build_summary.md
+        echo "## Next Steps" >> ./build-logs/build_summary.md
+        echo "- Check the detailed logs for more information" >> ./build-logs/build_summary.md
+        echo "- Review Xcode project settings" >> ./build-logs/build_summary.md
+        echo "- Verify code signing configuration" >> ./build-logs/build_summary.md
         
     - name: Upload test results and logs
       if: always()
