@@ -39,10 +39,15 @@ if (window.location.href && window.location.href !== "about:blank") { // Avoid l
     previewImageURL = resolveURL(previewImageURL);
     faviconURL = resolveURL(faviconURL);
 
-   te a ag let articleText = null;
+   let articleText = null;
     try {
         // Clone the document because Readability modifies it
         const documentClone = document.cloneNode(true);
+        // Check if Readability is available
+        if (typeof Readability === 'undefined') {
+            console.warn("Readability.js is not available. Article text extraction skipped.");
+            throw new Error("Readability is not defined");
+        }
         const reader = new Readability(documentClone);
         const article = reader.parse();
         if (article && article.textContent) {

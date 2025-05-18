@@ -1,0 +1,30 @@
+{
+  "name": "russ5",
+  "version": "1.0.0",
+  "description": "Safari extension build and verification",
+  "scripts": {
+    "print-env": "echo '=== Environment Information ===' > ./logs/environment.log && echo 'macOS Version:' >> ./logs/environment.log && sw_vers >> ./logs/environment.log && echo 'Xcode Version:' >> ./logs/environment.log && xcodebuild -version >> ./logs/environment.log && echo 'Available schemes:' >> ./logs/environment.log && xcodebuild -list -project russ5.xcodeproj >> ./logs/environment.log || true",
+    "create-logs-dir": "mkdir -p ./logs",
+    "validate-js": "node ./scripts/validate-js.js",
+    "build": "xcodebuild -project russ5.xcodeproj -scheme 'russ5' -configuration Debug clean build | tee ./logs/build.log || (echo '❌ Build failed, trying extension only...' && xcodebuild -project russ5.xcodeproj -scheme 'russ5 Extension' -configuration Debug clean build | tee ./logs/extension_build.log)",
+    "verify-build": "node ./scripts/verify-extension.js",
+    "create-summary": "node ./scripts/create-summary.js",
+    "package-extension": "mkdir -p ./dist && EXTENSION_PATH=$(find ~/Library/Developer/Xcode/DerivedData -path '*/Build/Products/Debug/*.appex' -type d | head -1) && if [ -n \"$EXTENSION_PATH\" ]; then cp -R \"$EXTENSION_PATH\" ./dist/ && cd ./dist && zip -r safari-extension.zip *.appex && cd .. && echo '✅ Extension packaged at ./dist/safari-extension.zip'; else echo '❌ Could not find extension to package' && exit 1; fi",
+    "ci": "npm run create-logs-dir && npm run print-env && npm run validate-js && npm run build && npm run verify-build && npm run create-summary && npm run package-extension",
+    "precommit": "npm run validate-js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/posix4e/russ5.git"
+  },
+  "keywords": [
+    "safari",
+    "extension"
+  ],
+  "author": "",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/posix4e/russ5/issues"
+  },
+  "homepage": "https://github.com/posix4e/russ5#readme"
+}
