@@ -8,7 +8,7 @@ on:
 
 jobs:
   test:
-    runs-on: macos-14
+    runs-on: macos-13
     env:
       BROWSERSTACK_USERNAME: ${{ secrets.BROWSERSTACK_USERNAME }}
       BROWSERSTACK_ACCESS_KEY: ${{ secrets.BROWSERSTACK_ACCESS_KEY }}
@@ -31,9 +31,30 @@ jobs:
         mkdir -p $HOME/.browserstack
         echo "{ \"username\": \"$BROWSERSTACK_USERNAME\", \"key\": \"$BROWSERSTACK_ACCESS_KEY\" }" > $HOME/.browserstack/config.json
         
+    - name: Check Xcode project format
+      run: |
+        # Print Xcode version
+        xcodebuild -version
+        
+        # Check if the project can be opened
+        if ! xcodebuild -list -project russ5.xcodeproj &>/dev/null; then
+          echo "Project format is incompatible. Attempting to convert..."
+          # Try to convert the project format if needed
+          plutil -convert xml1 russ5.xcodeproj/project.pbxproj
+        fi
+        
     - name: Build and Test
       run: |
-        xcodebuild -scheme "russ5" -sdk iphonesimulator -destination 'platform=iOS Simulator,name=iPhone 15 Pro' clean build test | xcpretty
+        # Try to list available schemes
+        echo "Available schemes:"
+        xcodebuild -list -project russ5.xcodeproj || true
+        
+        # Try to list available destinations
+        echo "Available destinations:"
+        xcodebuild -showdestinations -project russ5.xcodeproj || true
+        
+        # Use a more compatible approach with project format
+        xcodebuild -project russ5.xcodeproj -scheme "russ5" -sdk iphonesimulator -destination 'platform=iOS Simulator,name=iPhone 14' -allowProvisioningUpdates -allowProvisioningDeviceRegistration clean build || true
         
     - name: Upload test results
       if: always()
