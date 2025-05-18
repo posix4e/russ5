@@ -16,7 +16,9 @@
     "encode-certificates": "node ./scripts/encode-certificates.js",
     "ci": "npm run create-dirs && npm run print-env && npm run setup-signing && npm run validate-js && npm run build && npm run verify-build && npm run create-summary && npm run package-extension",
     "ci-fastlane": "npm run create-dirs && npm run print-env && npm run setup-signing && npm run build-fastlane && npm run verify-build && npm run create-summary && npm run package-extension",
-    "precommit": "npm run validate-js"
+    "precommit": "npm run validate-js",
+    "match-sync": "node -e \"const {execSync}=require('child_process');console.log('Running match development...');execSync('fastlane match development --app_identifier xyz.russ.russ5,xyz.russ.russ5.Extension',{stdio:'inherit'});\"",
+    "match-test": "node -e \"const {execSync}=require('child_process');console.log('Testing with:\\nTEAM_ID: ' + process.env.TEAM_ID + '\\nFASTLANE_APPLE_ID: ' + process.env.FASTLANE_APPLE_ID + '\\nMATCH_GIT_URL: ' + process.env.MATCH_GIT_URL);try{console.log('\\nRunning match development...');execSync('fastlane match development --app_identifier xyz.russ.russ5,xyz.russ.russ5.Extension',{stdio:'inherit'});console.log('\\nRunning build_dev lane...');execSync('fastlane build_dev',{stdio:'inherit'});}catch(e){console.log('\\nFirst approach failed, trying alternative approach...');try{execSync('fastlane build_dev_alt',{stdio:'inherit'});}catch(e2){console.error('\\n❌ Both approaches failed. Error:',e2.message);process.exit(1);}}console.log('\\n✅ Test completed!');\""
   },
   "repository": {
     "type": "git",
