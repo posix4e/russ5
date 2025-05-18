@@ -21,10 +21,12 @@ jobs:
       with:
         ruby-version: '3.3'
         
-    - name: Install fastlane
+    - name: Install dependencies
       run: |
         gem install fastlane
         gem install xcpretty
+        brew install jq
+        npm install -g browserstack-app-automate
         
     - name: Install BrowserStack app-automate
       run: |
@@ -56,9 +58,101 @@ jobs:
         # Use a more compatible approach with project format
         xcodebuild -project russ5.xcodeproj -scheme "russ5" -sdk iphonesimulator -destination 'platform=iOS Simulator,name=iPhone 14' -allowProvisioningUpdates -allowProvisioningDeviceRegistration clean build || true
         
+    - name: Create exportOptions.plist for BrowserStack testing
+      run: |
+        cat > exportOptions.plist << EOF
+        <?xml version="1.0" encoding="UTF-8"?>
+        <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+        <plist version="1.0">
+        <dict>
+            <key>method</key>
+            <string>development</string>
+            <key>teamID</key>
+            <string>YOUR_TEAM_ID</string>
+        </dict>
+        </plist>
+        EOF
+        
+    - name: Build for BrowserStack testing
+      run: |
+        # Build for testing on real devices via BrowserStack
+        xcodebuild -project russ5.xcodeproj -scheme "russ5" -sdk iphoneos -configuration Debug -archivePath ./build/russ5.xcarchive archive -allowProvisioningUpdates || true
+        
+        # Create IPA file
+        xcodebuild -exportArchive -archivePath ./build/russ5.xcarchive -exportPath ./build -exportOptionsPlist exportOptions.plist || true
+        
+    - name: Run tests on BrowserStack real device
+      if: env.BROWSERSTACK_USERNAME != '' && env.BROWSERSTACK_ACCESS_KEY != ''
+      run: |
+        # Create test directory if it doesn't exist
+        mkdir -p ./build/test
+        
+        # Upload app to BrowserStack
+        echo "Uploading app to BrowserStack..."
+        APP_URL=$(curl -u "$BROWSERSTACK_USERNAME:$BROWSERSTACK_ACCESS_KEY" \
+          -X POST "https://api-cloud.browserstack.com/app-automate/upload" \
+          -F "file=@./build/russ5.ipa" \
+          | jq -r '.app_url')
+          
+        if [ -n "$APP_URL" ] && [ "$APP_URL" != "null" ]; then
+          echo "App uploaded to BrowserStack. URL: $APP_URL"
+          
+          # Create a test spec for BrowserStack
+          cat > ./build/test/browserstack.yml << EOF
+        # BrowserStack configuration file
+        app: $APP_URL
+        devices:
+          - iPhone 14 Pro-16
+          - iPhone 13-15
+        project: "russ5"
+        testSuite: "./build/test/UITests.ipa"
+        EOF
+          
+          # Build XCUITest bundle
+          xcodebuild -project russ5.xcodeproj -scheme "russ5UITests" -sdk iphoneos -destination 'generic/platform=iOS' -configuration Debug clean build-for-testing -allowProvisioningUpdates || true
+          
+          # Find the XCUITest bundle
+          TEST_BUNDLE=$(find ~/Library/Developer/Xcode/DerivedData -name "*.xctest" | grep -i UITests | head -1)
+          
+          if [ -n "$TEST_BUNDLE" ]; then
+            echo "Found XCUITest bundle: $TEST_BUNDLE"
+            
+            # Create a zip file of the test bundle
+            cd $(dirname "$TEST_BUNDLE")
+            zip -r ./build/test/UITests.zip $(basename "$TEST_BUNDLE")
+            
+            # Upload test bundle to BrowserStack
+            TEST_URL=$(curl -u "$BROWSERSTACK_USERNAME:$BROWSERSTACK_ACCESS_KEY" \
+              -X POST "https://api-cloud.browserstack.com/app-automate/xcuitest/v2/test-suite" \
+              -F "file=@./build/test/UITests.zip" \
+              | jq -r '.test_url')
+              
+            if [ -n "$TEST_URL" ] && [ "$TEST_URL" != "null" ]; then
+              echo "Test bundle uploaded to BrowserStack. URL: $TEST_URL"
+              
+              # Update the test spec with the test URL
+              sed -i '' "s|testSuite: \"./build/test/UITests.ipa\"|test_suite: \"$TEST_URL\"|g" ./build/test/browserstack.yml
+              
+              # Run tests on BrowserStack
+              curl -X POST "https://api-cloud.browserstack.com/app-automate/xcuitest/v2/build" \
+                -u "$BROWSERSTACK_USERNAME:$BROWSERSTACK_ACCESS_KEY" \
+                -H "Content-Type: application/json" \
+                -d @./build/test/browserstack.yml
+            else
+              echo "Failed to upload test bundle to BrowserStack"
+            fi
+          else
+            echo "Could not find XCUITest bundle"
+          fi
+        else
+          echo "Failed to upload app to BrowserStack"
+        fi
+        
     - name: Upload test results
       if: always()
       uses: actions/upload-artifact@v4
       with:
         name: test-results
-        path: ~/Library/Developer/Xcode/DerivedData/**/Logs/Test/*.xcresult
+        path: |
+          ~/Library/Developer/Xcode/DerivedData/**/Logs/Test/*.xcresult
+          ./browserstack-results/**
