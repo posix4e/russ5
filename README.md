@@ -221,12 +221,9 @@ To test Fastlane Match locally before pushing to GitHub:
    export MATCH_GIT_URL="https://github.com/yourusername/russ5-certificates.git"
    
    # Option 2: Create a .env file (recommended)
-   cat > .env << EOL
-   TEAM_ID=YOUR_TEAM_ID
-   FASTLANE_APPLE_ID=YOUR_APPLE_ID
-   MATCH_PASSWORD=YOUR_MATCH_PASSWORD
-   MATCH_GIT_URL=https://github.com/yourusername/russ5-certificates.git
-   EOL
+   # Copy the sample file and edit it
+   cp .env.sample .env
+   # Then edit the .env file with your actual values
    ```
 
 2. **Run the test script**:
