@@ -71,7 +71,10 @@ Fastlane Match is the easiest way to handle code signing. To set it up:
 3. **Generate certificates and profiles**:
    ```bash
    # Generate development certificates and profiles
-   fastlane match development --app_identifier xyz.russ.russ5,xyz.russ.russ5.Extension
+   npm run match-sync
+   
+   # Or use the full test script to sync profiles and test the build
+   npm run match-test
    ```
 
 4. **Add required GitHub secrets**:
@@ -203,4 +206,31 @@ For local development, you can use Xcode's automatic signing or run:
 
 ```bash
 xcodebuild -project russ5.xcodeproj -scheme "russ5" -allowProvisioningUpdates build
+```
+
+### Testing Fastlane Match Locally
+
+To test Fastlane Match locally before pushing to GitHub:
+
+1. **Set up environment variables**:
+   ```bash
+   export TEAM_ID="YOUR_TEAM_ID"
+   export FASTLANE_APPLE_ID="YOUR_APPLE_ID"
+   export MATCH_PASSWORD="YOUR_MATCH_PASSWORD"
+   export MATCH_GIT_URL="https://github.com/yourusername/russ5-certificates.git"
+   ```
+
+2. **Run the test script**:
+   ```bash
+   npm run match-test
+   ```
+
+This script will:
+1. Sync certificates and profiles using Fastlane Match
+2. Try to build the app using the `build_dev` lane
+3. If that fails, try the alternative approach with `build_dev_alt` lane
+
+You can also run just the sync step without building:
+```bash
+npm run match-sync
 ```
