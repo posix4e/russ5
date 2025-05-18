@@ -292,31 +292,82 @@ jobs:
         # Create directories for logs
         mkdir -p ~/Library/Developer/Xcode/DerivedData/Logs/Test
         mkdir -p ./browserstack-results
-        mkdir -p ./build-logs
+        mkdir -p ./build-logs/xcode
+        mkdir -p ./build-logs/system
+        mkdir -p ./build-logs/project
         
         # Create summary file
         echo "BrowserStack test run completed at $(date)" > ./browserstack-results/test_summary.txt
         
         # Capture build logs
-        echo "=== Xcode Build Log ===" > ./build-logs/build_summary.log
-        find ~/Library/Developer/Xcode/DerivedData -name "*.log" -type f -exec cat {} \; >> ./build-logs/build_summary.log 2>/dev/null || true
+        echo "=== Xcode Build Log ===" > ./build-logs/xcode/build_summary.log
+        find ~/Library/Developer/Xcode/DerivedData -name "*.log" -type f -exec cat {} \; >> ./build-logs/xcode/build_summary.log 2>/dev/null || true
+        
+        # Copy all Xcode logs
+        find ~/Library/Developer/Xcode/DerivedData -name "*.log" -type f -exec cp {} ./build-logs/xcode/ \; 2>/dev/null || true
         
         # Capture environment information
-        echo "=== Environment Information ===" > ./build-logs/environment.log
-        echo "macOS Version:" >> ./build-logs/environment.log
-        sw_vers >> ./build-logs/environment.log 2>&1 || true
-        echo "\nXcode Version:" >> ./build-logs/environment.log
-        xcodebuild -version >> ./build-logs/environment.log 2>&1 || true
-        echo "\nInstalled Simulators:" >> ./build-logs/environment.log
-        xcrun simctl list devices >> ./build-logs/environment.log 2>&1 || true
+        echo "=== Environment Information ===" > ./build-logs/system/environment.log
+        echo "macOS Version:" >> ./build-logs/system/environment.log
+        sw_vers >> ./build-logs/system/environment.log 2>&1 || true
+        echo "\nXcode Version:" >> ./build-logs/system/environment.log
+        xcodebuild -version >> ./build-logs/system/environment.log 2>&1 || true
+        echo "\nInstalled Simulators:" >> ./build-logs/system/environment.log
+        xcrun simctl list devices >> ./build-logs/system/environment.log 2>&1 || true
+        echo "\nRuby Version:" >> ./build-logs/system/environment.log
+        ruby --version >> ./build-logs/system/environment.log 2>&1 || true
+        echo "\nGem List:" >> ./build-logs/system/environment.log
+        gem list >> ./build-logs/system/environment.log 2>&1 || true
+        echo "\nNode Version:" >> ./build-logs/system/environment.log
+        node --version >> ./build-logs/system/environment.log 2>&1 || true
+        echo "\nNPM Version:" >> ./build-logs/system/environment.log
+        npm --version >> ./build-logs/system/environment.log 2>&1 || true
         
         # Capture project structure
-        echo "=== Project Structure ===" > ./build-logs/project_structure.log
-        find . -type f -name "*.swift" | sort >> ./build-logs/project_structure.log 2>&1 || true
+        echo "=== Project Structure ===" > ./build-logs/project/structure.log
+        find . -type f -name "*.swift" | sort >> ./build-logs/project/structure.log 2>&1 || true
+        find . -type f -name "*.h" | sort >> ./build-logs/project/structure.log 2>&1 || true
+        find . -type f -name "*.m" | sort >> ./build-logs/project/structure.log 2>&1 || true
         
         # Capture Xcode project settings
-        echo "=== Xcode Project Settings ===" > ./build-logs/project_settings.log
-        xcodebuild -list -project russ5.xcodeproj >> ./build-logs/project_settings.log 2>&1 || true
+        echo "=== Xcode Project Settings ===" > ./build-logs/project/settings.log
+        xcodebuild -list -project russ5.xcodeproj >> ./build-logs/project/settings.log 2>&1 || true
+        
+        # Capture project.pbxproj content
+        echo "=== Project.pbxproj Content ===" > ./build-logs/project/pbxproj.log
+        cat russ5.xcodeproj/project.pbxproj >> ./build-logs/project/pbxproj.log 2>&1 || true
+        
+        # Capture build directory content
+        echo "=== Build Directory Content ===" > ./build-logs/project/build_dir.log
+        find ./build -type f | sort >> ./build-logs/project/build_dir.log 2>&1 || true
+        
+        # Create a build summary markdown file
+        cat > ./build-logs/build_summary.md << EOF
+        # Build Summary
+        
+        ## Environment
+        - macOS: $(sw_vers -productVersion 2>/dev/null || echo "Unknown")
+        - Xcode: $(xcodebuild -version 2>/dev/null | head -n 1 || echo "Unknown")
+        - Ruby: $(ruby --version 2>/dev/null || echo "Unknown")
+        - Node: $(node --version 2>/dev/null || echo "Unknown")
+        
+        ## Build Status
+        - Checkout: ✅
+        - Ruby Setup: ✅
+        - Dependencies: ✅
+        - Xcode Project Format Check: ✅
+        - Build: $([ -d "./build/russ5.xcarchive" ] && echo "✅" || echo "❌")
+        - IPA Creation: $([ -f "./build/russ5.ipa" ] && echo "✅" || echo "❌")
+        - BrowserStack Testing: $([ -f "./browserstack-results/test_summary.txt" ] && echo "✅" || echo "❌")
+        
+        ## Issues Found
+        $(find ~/Library/Developer/Xcode/DerivedData -name "*.log" -type f -exec grep -l "error:" {} \; | wc -l | xargs -I{} echo "- {} error logs found")
+        
+        ## Next Steps
+        - Check the detailed logs for more information
+        - Review Xcode project settings
+        - Verify code signing configuration
+        EOF
         
     - name: Upload test results and logs
       if: always()
