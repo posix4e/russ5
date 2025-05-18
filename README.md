@@ -48,11 +48,54 @@ This project uses Fastlane for iOS build automation. The Fastlane configuration 
 - **Fastfile**: Contains lanes for building and signing the app
 - **Matchfile**: Configuration for certificate and profile management
 
-To use Fastlane for building:
+#### Setting Up Fastlane Match (Recommended)
+
+Fastlane Match is the easiest way to handle code signing. To set it up:
+
+1. **Create a private repository** for storing certificates:
+   ```bash
+   # Create a new private repository on GitHub
+   # Example: https://github.com/yourusername/russ5-certificates
+   ```
+
+2. **Initialize Match** (do this once, locally):
+   ```bash
+   # Install fastlane if you haven't already
+   gem install fastlane
+
+   # Run match init to set up your repository
+   fastlane match init
+   # Follow the prompts to configure your repository
+   ```
+
+3. **Generate certificates and profiles**:
+   ```bash
+   # Generate development certificates and profiles
+   fastlane match development --app_identifier xyz.russ.russ5,xyz.russ.russ5.Extension
+   ```
+
+4. **Add required GitHub secrets**:
+   - `MATCH_PASSWORD`: The encryption password you set during match init
+   - `MATCH_GIT_URL`: URL of your private certificates repository
+   - `MATCH_GIT_BASIC_AUTHORIZATION`: Base64-encoded GitHub credentials (username:token)
+   - `FASTLANE_APPLE_ID`: Your Apple ID email
+   - `FASTLANE_APPLE_APPLICATION_SPECIFIC_PASSWORD`: App-specific password
+   - `TEAM_ID`: Your Apple Developer Team ID
+
+5. **Run the workflow**:
+   ```bash
+   npm run ci-fastlane
+   ```
+
+#### Creating the MATCH_GIT_BASIC_AUTHORIZATION Secret
+
+To create the `MATCH_GIT_BASIC_AUTHORIZATION` secret:
 
 ```bash
-npm run ci-fastlane
+echo -n "github_username:github_personal_access_token" | base64
 ```
+
+Use the output as the value for the `MATCH_GIT_BASIC_AUTHORIZATION` secret.
 
 ## Local Testing Guide
 

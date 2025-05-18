@@ -33,8 +33,9 @@ platform :ios do
     match(
       type: "development",
       app_identifier: ["xyz.russ.russ5", "xyz.russ.russ5.Extension"],
-      readonly: false,
-      force_for_new_devices: true
+      readonly: is_ci, # Only read in CI, allow creating locally
+      force_for_new_devices: !is_ci, # Allow updating for new devices when not in CI
+      generate_apple_certs: !is_ci # Generate Apple certificates if needed when not in CI
     )
   end
   
@@ -43,10 +44,21 @@ platform :ios do
     # Ensure we have the right certificates and profiles
     setup_profiles
     
-    # Update project settings
-    update_project_team(
+    # Update project settings for match profiles
+    update_code_signing_settings(
+      use_automatic_signing: false,
       path: "russ5.xcodeproj",
-      teamid: ENV["TEAM_ID"]
+      team_id: ENV["TEAM_ID"],
+      targets: ["russ5", "russ5 Extension"],
+      code_sign_identity: "Apple Development",
+      profile_name: {
+        "russ5" => "match Development xyz.russ.russ5",
+        "russ5 Extension" => "match Development xyz.russ.russ5.Extension"
+      },
+      bundle_identifier: {
+        "russ5" => "xyz.russ.russ5",
+        "russ5 Extension" => "xyz.russ.russ5.Extension"
+      }
     )
     
     # Build the app

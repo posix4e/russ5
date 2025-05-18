@@ -1,13 +1,29 @@
-git_url("https://github.com/posix4e/russ5-certificates.git")
+# The URL of your private certificates repository
+# This can be overridden by setting the MATCH_GIT_URL environment variable
+git_url(ENV["MATCH_GIT_URL"])
 
 storage_mode("git")
 
-type("development") # The default type, can be: appstore, adhoc, enterprise or development
+# The default type, can be: appstore, adhoc, enterprise or development
+type("development") 
 
+# App identifiers to include in the provisioning profile
 app_identifier(["xyz.russ.russ5", "xyz.russ.russ5.Extension"])
-username(ENV["FASTLANE_APPLE_ID"]) # Your Apple Developer Portal username
 
-# For all available options run `fastlane match --help`
-# Remove the # in the beginning of the line to enable the other options
+# Your Apple Developer Portal username
+# This can be overridden by setting the FASTLANE_APPLE_ID environment variable
+username(ENV["FASTLANE_APPLE_ID"]) 
+
+# Team ID from the Apple Developer Portal
+# This can be overridden by setting the TEAM_ID environment variable
+team_id(ENV["TEAM_ID"])
+
+# For GitHub Actions, we can use basic authorization with a token
+if ENV["MATCH_GIT_BASIC_AUTHORIZATION"]
+  git_basic_authorization(ENV["MATCH_GIT_BASIC_AUTHORIZATION"])
+end
+
+# Set to readonly in CI environments to prevent creating new certificates
+readonly(ENV["CI"] == "true")
 
 # The docs are available on https://docs.fastlane.tools/actions/match/

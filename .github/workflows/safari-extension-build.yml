@@ -46,12 +46,33 @@ jobs:
         
     - name: Setup code signing
       env:
+        # For manual signing (Option 1)
         CERTIFICATE_BASE64: ${{ secrets.CERTIFICATE_BASE64 }}
         CERTIFICATE_PASSWORD: ${{ secrets.CERTIFICATE_PASSWORD }}
         PROVISIONING_PROFILE_BASE64: ${{ secrets.PROVISIONING_PROFILE_BASE64 }}
         PROVISIONING_PROFILE_EXTENSION_BASE64: ${{ secrets.PROVISIONING_PROFILE_EXTENSION_BASE64 }}
         KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD || 'temporary_password' }}
-      run: npm run setup-signing
+        # For fastlane match (Option 3)
+        MATCH_PASSWORD: ${{ secrets.MATCH_PASSWORD }}
+        MATCH_GIT_BASIC_AUTHORIZATION: ${{ secrets.MATCH_GIT_BASIC_AUTHORIZATION }}
+        MATCH_GIT_URL: ${{ secrets.MATCH_GIT_URL }}
+        MATCH_KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD || 'temporary_password' }}
+      run: |
+        # If using fastlane match and secrets are available, set up match
+        if [ -n "$MATCH_PASSWORD" ] && [ -n "$MATCH_GIT_URL" ]; then
+          echo "Setting up fastlane match..."
+          # Update Matchfile with the repository URL if provided as a secret
+          if [ -n "$MATCH_GIT_URL" ]; then
+            sed -i.bak "s|git_url(\".*\")|git_url(\"$MATCH_GIT_URL\")|g" fastlane/Matchfile
+          fi
+          
+          # Run match to sync certificates and profiles
+          bundle exec fastlane match development
+        else
+          # Fall back to manual signing setup
+          echo "Using manual signing setup..."
+          npm run setup-signing
+        fi
 
     - name: Build with Fastlane or xcodebuild
       env:
