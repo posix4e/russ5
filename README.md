@@ -1,5 +1,59 @@
 # Russ5 Safari Extension
 
+This repository contains a Safari extension with GitHub Actions and Fastlane integration for building and signing.
+
+## Setup Instructions
+
+### Prerequisites
+
+- Xcode 16.2 or later
+- Node.js 18 or later
+- Ruby 3.2 or later (for Fastlane)
+- Apple Developer Account
+
+### GitHub Actions Setup
+
+The GitHub Actions workflow is configured to build the Safari extension using either Fastlane or xcodebuild. To make it work with code signing, you need to add the following secrets to your GitHub repository:
+
+#### Required Secrets
+
+- `TEAM_ID`: Your Apple Developer Team ID
+- `FASTLANE_APPLE_ID`: Your Apple ID email
+- `FASTLANE_APPLE_APPLICATION_SPECIFIC_PASSWORD`: App-specific password for your Apple ID
+- `PROVISIONING_PROFILE_SPECIFIER`: Name of the provisioning profile for the main app
+- `EXTENSION_PROVISIONING_PROFILE_SPECIFIER`: Name of the provisioning profile for the extension
+
+#### Optional Secrets (for manual signing)
+
+- `CERTIFICATE_BASE64`: Base64-encoded p12 certificate file
+- `CERTIFICATE_PASSWORD`: Password for the p12 certificate
+- `PROVISIONING_PROFILE_BASE64`: Base64-encoded provisioning profile for the main app
+- `PROVISIONING_PROFILE_EXTENSION_BASE64`: Base64-encoded provisioning profile for the extension
+- `MATCH_PASSWORD`: Password for the match repository (if using match)
+- `KEYCHAIN_PASSWORD`: Password for the temporary keychain (defaults to 'temporary_password')
+
+### Generating Base64-encoded Certificates and Profiles
+
+You can use the included script to generate the base64-encoded values for your certificates and provisioning profiles:
+
+```bash
+npm run encode-certificates /path/to/certificate.p12 /path/to/app.mobileprovision /path/to/extension.mobileprovision
+```
+
+### Fastlane Integration
+
+This project uses Fastlane for iOS build automation. The Fastlane configuration includes:
+
+- **Appfile**: Stores app-specific information like bundle identifier and team ID
+- **Fastfile**: Contains lanes for building and signing the app
+- **Matchfile**: Configuration for certificate and profile management
+
+To use Fastlane for building:
+
+```bash
+npm run ci-fastlane
+```
+
 ## Local Testing Guide
 
 To ensure your changes work both locally and in GitHub Actions, follow these steps before pushing your code:
@@ -72,3 +126,38 @@ git commit --no-verify
 ```
 
 But this is not recommended as it may lead to broken builds in GitHub Actions.
+
+## Troubleshooting
+
+### Provisioning Profile Errors
+
+If you encounter errors like:
+
+```
+No profiles for 'xyz.russ.russ5' were found: Xcode couldn't find any iOS App Development provisioning profiles matching 'xyz.russ.russ5'. Automatic signing is disabled and unable to generate a profile. To enable automatic signing, pass -allowProvisioningUpdates to xcodebuild.
+```
+
+This means Xcode cannot find the required provisioning profiles for your app and extension. To fix this:
+
+1. **Option 1: Use manual signing with provided profiles**
+   - Generate provisioning profiles in the Apple Developer Portal
+   - Encode them using `npm run encode-certificates`
+   - Add them to GitHub secrets
+   - Make sure `TEAM_ID`, `PROVISIONING_PROFILE_SPECIFIER`, and `EXTENSION_PROVISIONING_PROFILE_SPECIFIER` are set
+
+2. **Option 2: Enable automatic signing**
+   - The GitHub Actions workflow already includes `-allowProvisioningUpdates` flag
+   - Make sure `TEAM_ID` and `FASTLANE_APPLE_ID` are set in GitHub secrets
+   - This allows Xcode to automatically generate and manage provisioning profiles
+
+3. **Option 3: Use fastlane match**
+   - Set up a private repository for storing certificates and profiles
+   - Configure the Matchfile with your repository URL
+   - Set `MATCH_PASSWORD` in GitHub secrets
+   - This provides a more robust way to manage certificates and profiles across your team
+
+For local development, you can use Xcode's automatic signing or run:
+
+```bash
+xcodebuild -project russ5.xcodeproj -scheme "russ5" -allowProvisioningUpdates build
+```

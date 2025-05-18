@@ -25,4 +25,70 @@ platform :ios do
       file_path: lane_context[SharedValues::IPA_OUTPUT_PATH]
     )
   end
+  
+  desc "Setup provisioning profiles for development"
+  lane :setup_profiles do
+    # Use match to sync development certificates and provisioning profiles
+    # You need to set up a private match repository first
+    match(
+      type: "development",
+      app_identifier: ["xyz.russ.russ5", "xyz.russ.russ5.Extension"],
+      readonly: false,
+      force_for_new_devices: true
+    )
+  end
+  
+  desc "Build the app for development"
+  lane :build_dev do
+    # Ensure we have the right certificates and profiles
+    setup_profiles
+    
+    # Update project settings
+    update_project_team(
+      path: "russ5.xcodeproj",
+      teamid: ENV["TEAM_ID"]
+    )
+    
+    # Build the app
+    build_ios_app(
+      project: "russ5.xcodeproj",
+      scheme: "russ5",
+      configuration: "Debug",
+      export_method: "development",
+      skip_package_ipa: true,
+      skip_archive: true,
+      clean: true,
+      output_directory: "./build"
+    )
+  end
+  
+  desc "Build the app with manual signing"
+  lane :build_manual do
+    # Update project settings for manual signing
+    update_code_signing_settings(
+      use_automatic_signing: false,
+      path: "russ5.xcodeproj",
+      team_id: ENV["TEAM_ID"],
+      targets: ["russ5", "russ5 Extension"],
+      code_sign_identity: "Apple Development",
+      profile_name: {
+        "russ5" => ENV["PROVISIONING_PROFILE_SPECIFIER"],
+        "russ5 Extension" => ENV["EXTENSION_PROVISIONING_PROFILE_SPECIFIER"]
+      },
+      bundle_identifier: {
+        "russ5" => "xyz.russ.russ5",
+        "russ5 Extension" => "xyz.russ.russ5.Extension"
+      }
+    )
+    
+    # Build the app
+    xcodebuild(
+      project: "russ5.xcodeproj",
+      scheme: "russ5",
+      configuration: "Debug",
+      clean: true,
+      build: true,
+      allowProvisioningUpdates: true
+    )
+  end
 end
