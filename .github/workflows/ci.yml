@@ -8,18 +8,18 @@ on:
 
 jobs:
   test:
-    runs-on: macos-latest
+    runs-on: macos-14
     env:
       BROWSERSTACK_USERNAME: ${{ secrets.BROWSERSTACK_USERNAME }}
       BROWSERSTACK_ACCESS_KEY: ${{ secrets.BROWSERSTACK_ACCESS_KEY }}
       
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     
     - name: Set up Ruby for fastlane
       uses: ruby/setup-ruby@v1
       with:
-        ruby-version: '3.2'
+        ruby-version: '3.3'
         
     - name: Install fastlane
       run: |
@@ -33,11 +33,11 @@ jobs:
         
     - name: Build and Test
       run: |
-        xcodebuild -scheme "russ5" -sdk iphonesimulator -destination 'platform=iOS Simulator,name=iPhone 14 Pro' clean build test | xcpretty
+        xcodebuild -scheme "russ5" -sdk iphonesimulator -destination 'platform=iOS Simulator,name=iPhone 15 Pro' clean build test | xcpretty
         
     - name: Upload test results
       if: always()
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: test-results
         path: ~/Library/Developer/Xcode/DerivedData/**/Logs/Test/*.xcresult
