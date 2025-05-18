@@ -9,7 +9,7 @@ on:
 
 jobs:
   test:
-    runs-on: macos-13
+    runs-on: macos-latest
     timeout-minutes: 30
     env:
       BROWSERSTACK_USERNAME: ${{ secrets.BROWSERSTACK_USERNAME }}
@@ -19,7 +19,7 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
       with:
-        fetch-depth: 1
+        fetch-depth: 0
     
     - name: Set up Ruby for fastlane
       uses: ruby/setup-ruby@v1
@@ -110,21 +110,38 @@ jobs:
         echo "Available destinations:"
         xcodebuild -showdestinations -project russ5.xcodeproj | tee ./build-logs/available_destinations.log || true
         
-        # Use a more compatible approach with project format
+        # Build for simulator
         set +e
-        echo "Running primary build..."
-        xcodebuild -project russ5.xcodeproj -scheme "russ5" -sdk iphonesimulator -destination 'platform=iOS Simulator,name=iPhone 14' -allowProvisioningUpdates -allowProvisioningDeviceRegistration clean build | tee ./build-logs/primary_build.log
+        echo "Building for simulator..."
+        xcodebuild -project russ5.xcodeproj -scheme "russ5" -sdk iphonesimulator -destination 'platform=iOS Simulator,name=iPhone 14' clean build | xcpretty | tee ./build-logs/build.log
         BUILD_RESULT=$?
         set -e
         
         # Save build result
-        echo "Primary build exit code: $BUILD_RESULT" >> ./build-logs/build_results.log
+        echo "Build exit code: $BUILD_RESULT" | tee -a ./build-logs/build_results.log
         
         if [ $BUILD_RESULT -ne 0 ]; then
-          echo "Build failed with exit code $BUILD_RESULT. Trying alternative build approach..."
-          xcodebuild -project russ5.xcodeproj -scheme "russ5" -sdk iphonesimulator -destination 'platform=iOS Simulator,OS=latest' -allowProvisioningUpdates clean build | tee ./build-logs/alternative_build.log || true
+          echo "Build failed with exit code $BUILD_RESULT. Trying alternative build approach..." | tee -a ./build-logs/build_results.log
+          xcodebuild -project russ5.xcodeproj -scheme "russ5" -sdk iphonesimulator -destination 'platform=iOS Simulator,OS=latest' clean build | xcpretty | tee -a ./build-logs/build_alt.log || true
           ALT_BUILD_RESULT=$?
-          echo "Alternative build exit code: $ALT_BUILD_RESULT" >> ./build-logs/build_results.log
+          echo "Alternative build exit code: $ALT_BUILD_RESULT" | tee -a ./build-logs/build_results.log
+        fi
+        
+        # Run tests
+        set +e
+        echo "Running tests..."
+        xcodebuild -project russ5.xcodeproj -scheme "russ5" -sdk iphonesimulator -destination 'platform=iOS Simulator,name=iPhone 14' test | xcpretty | tee ./build-logs/test.log
+        TEST_RESULT=$?
+        set -e
+        
+        # Save test result
+        echo "Test exit code: $TEST_RESULT" | tee -a ./build-logs/test_results.log
+        
+        if [ $TEST_RESULT -ne 0 ]; then
+          echo "Tests failed with exit code $TEST_RESULT. Trying alternative test approach..." | tee -a ./build-logs/test_results.log
+          xcodebuild -project russ5.xcodeproj -scheme "russ5" -sdk iphonesimulator -destination 'platform=iOS Simulator,OS=latest' test | xcpretty | tee -a ./build-logs/test_alt.log || true
+          ALT_TEST_RESULT=$?
+          echo "Alternative test exit code: $ALT_TEST_RESULT" | tee -a ./build-logs/test_results.log
         fi
         
         # Capture project structure for debugging
@@ -259,6 +276,7 @@ jobs:
     - name: Run tests on BrowserStack real device
       if: env.BROWSERSTACK_USERNAME != '' && env.BROWSERSTACK_ACCESS_KEY != ''
       continue-on-error: true
+      timeout-minutes: 10
       run: |
         # Create test directory if it doesn't exist
         mkdir -p ./build/test
@@ -497,5 +515,6 @@ jobs:
           ~/Library/Developer/Xcode/DerivedData/**/Logs/Test/*.xcresult
           ./browserstack-results/**
           ./build-logs/**
+          ./build/*.ipa
         if-no-files-found: warn
-        retention-days: 5
+        retention-days: 7
