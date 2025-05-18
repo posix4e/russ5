@@ -2,29 +2,35 @@ name: CI
 
 on:
   push:
-    branches: [ main ]
+    branches: [ main, master ]
   pull_request:
-    branches: [ main ]
+    branches: [ main, master ]
+  workflow_dispatch:
 
 jobs:
   test:
     runs-on: macos-13
+    timeout-minutes: 30
     env:
       BROWSERSTACK_USERNAME: ${{ secrets.BROWSERSTACK_USERNAME }}
       BROWSERSTACK_ACCESS_KEY: ${{ secrets.BROWSERSTACK_ACCESS_KEY }}
       
     steps:
-    - uses: actions/checkout@v4
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 1
     
     - name: Set up Ruby for fastlane
       uses: ruby/setup-ruby@v1
       with:
         ruby-version: '3.3'
+        bundler-cache: true
         
     - name: Install dependencies
       run: |
-        gem install fastlane
-        gem install xcpretty
+        gem install fastlane -N
+        gem install xcpretty -N
         brew install jq || true
         
         # Install Node.js if not already installed
@@ -35,7 +41,8 @@ jobs:
         # Install browserstack-app-automate
         npm install -g browserstack-app-automate || true
         
-    - name: Install BrowserStack app-automate
+    - name: Setup BrowserStack
+      if: env.BROWSERSTACK_USERNAME != '' && env.BROWSERSTACK_ACCESS_KEY != ''
       run: |
         mkdir -p $HOME/.browserstack
         echo "{ \"username\": \"$BROWSERSTACK_USERNAME\", \"key\": \"$BROWSERSTACK_ACCESS_KEY\" }" > $HOME/.browserstack/config.json
@@ -63,10 +70,28 @@ jobs:
         xcodebuild -showdestinations -project russ5.xcodeproj || true
         
         # Use a more compatible approach with project format
-        xcodebuild -project russ5.xcodeproj -scheme "russ5" -sdk iphonesimulator -destination 'platform=iOS Simulator,name=iPhone 14' -allowProvisioningUpdates -allowProvisioningDeviceRegistration clean build || true
+        set +e
+        xcodebuild -project russ5.xcodeproj -scheme "russ5" -sdk iphonesimulator -destination 'platform=iOS Simulator,name=iPhone 14' -allowProvisioningUpdates -allowProvisioningDeviceRegistration clean build
+        BUILD_RESULT=$?
+        set -e
+        
+        if [ $BUILD_RESULT -ne 0 ]; then
+          echo "Build failed with exit code $BUILD_RESULT. Trying alternative build approach..."
+          xcodebuild -project russ5.xcodeproj -scheme "russ5" -sdk iphonesimulator -destination 'platform=iOS Simulator,OS=latest' -allowProvisioningUpdates clean build || true
+        fi
         
     - name: Create exportOptions.plist for BrowserStack testing
       run: |
+        # Extract team ID from project if possible
+        TEAM_ID=$(grep -A 5 "DEVELOPMENT_TEAM" russ5.xcodeproj/project.pbxproj | grep -o '"[A-Z0-9]*"' | head -1 | tr -d '"' || echo "")
+        
+        if [ -z "$TEAM_ID" ]; then
+          TEAM_ID="YOUR_TEAM_ID"
+          echo "Could not extract team ID from project, using placeholder"
+        else
+          echo "Found team ID: $TEAM_ID"
+        fi
+        
         cat > exportOptions.plist << EOF
         <?xml version="1.0" encoding="UTF-8"?>
         <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -75,18 +100,44 @@ jobs:
             <key>method</key>
             <string>development</string>
             <key>teamID</key>
-            <string>YOUR_TEAM_ID</string>
+            <string>$TEAM_ID</string>
+            <key>compileBitcode</key>
+            <false/>
+            <key>uploadBitcode</key>
+            <false/>
+            <key>uploadSymbols</key>
+            <true/>
         </dict>
         </plist>
         EOF
         
     - name: Build for BrowserStack testing
+      if: env.BROWSERSTACK_USERNAME != '' && env.BROWSERSTACK_ACCESS_KEY != ''
+      continue-on-error: true
       run: |
-        # Build for testing on real devices via BrowserStack
-        xcodebuild -project russ5.xcodeproj -scheme "russ5" -sdk iphoneos -configuration Debug -archivePath ./build/russ5.xcarchive archive -allowProvisioningUpdates || true
+        # Create build directory
+        mkdir -p ./build
         
-        # Create IPA file
-        xcodebuild -exportArchive -archivePath ./build/russ5.xcarchive -exportPath ./build -exportOptionsPlist exportOptions.plist || true
+        # Build for testing on real devices via BrowserStack
+        echo "Building archive for BrowserStack testing..."
+        set +e
+        xcodebuild -project russ5.xcodeproj -scheme "russ5" -sdk iphoneos -configuration Debug -archivePath ./build/russ5.xcarchive archive -allowProvisioningUpdates
+        ARCHIVE_RESULT=$?
+        set -e
+        
+        if [ $ARCHIVE_RESULT -ne 0 ]; then
+          echo "Archive build failed with exit code $ARCHIVE_RESULT. Trying alternative approach..."
+          xcodebuild -project russ5.xcodeproj -scheme "russ5" -sdk iphoneos -configuration Release -archivePath ./build/russ5.xcarchive archive -allowProvisioningUpdates || true
+        fi
+        
+        # Check if archive was created
+        if [ -d "./build/russ5.xcarchive" ]; then
+          echo "Archive created successfully. Creating IPA file..."
+          # Create IPA file
+          xcodebuild -exportArchive -archivePath ./build/russ5.xcarchive -exportPath ./build -exportOptionsPlist exportOptions.plist || true
+        else
+          echo "Failed to create archive. Skipping IPA creation."
+        fi
         
     - name: Run tests on BrowserStack real device
       if: env.BROWSERSTACK_USERNAME != '' && env.BROWSERSTACK_ACCESS_KEY != ''
