@@ -154,24 +154,26 @@ jobs:
         fi
         
         # Create exportOptions.plist
-        cat > ./build/exportOptions.plist << EOF
-        <?xml version="1.0" encoding="UTF-8"?>
-        <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-        <plist version="1.0">
-        <dict>
-            <key>method</key>
-            <string>development</string>
-            <key>teamID</key>
-            <string>$TEAM_ID</string>
-            <key>compileBitcode</key>
-            <false/>
-            <key>uploadBitcode</key>
-            <false/>
-            <key>uploadSymbols</key>
-            <true/>
-        </dict>
-        </plist>
-EOF
+        cat > ./build/exportOptions.plist << 'EOT'
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>method</key>
+    <string>development</string>
+    <key>teamID</key>
+    <string>$TEAM_ID</string>
+    <key>compileBitcode</key>
+    <false/>
+    <key>uploadBitcode</key>
+    <false/>
+    <key>uploadSymbols</key>
+    <true/>
+</dict>
+</plist>
+EOT
+        # Replace $TEAM_ID with actual value
+        sed -i.bak "s/\$TEAM_ID/$TEAM_ID/g" ./build/exportOptions.plist
         
         # Verify the file was created correctly
         if [ -f "./build/exportOptions.plist" ]; then
@@ -211,22 +213,22 @@ EOF
             echo "exportOptions.plist not found. Creating a default one..." | tee -a ./build-logs/archive_build.log
             
             # Create a default exportOptions.plist
-            cat > ./build/exportOptions.plist << EOF
-            <?xml version="1.0" encoding="UTF-8"?>
-            <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-            <plist version="1.0">
-            <dict>
-                <key>method</key>
-                <string>development</string>
-                <key>compileBitcode</key>
-                <false/>
-                <key>uploadBitcode</key>
-                <false/>
-                <key>uploadSymbols</key>
-                <true/>
-            </dict>
-            </plist>
-EOF
+            cat > ./build/exportOptions.plist << 'EOT'
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>method</key>
+    <string>development</string>
+    <key>compileBitcode</key>
+    <false/>
+    <key>uploadBitcode</key>
+    <false/>
+    <key>uploadSymbols</key>
+    <true/>
+</dict>
+</plist>
+EOT
           fi
           
           # Create IPA file
@@ -245,16 +247,16 @@ EOF
             echo "Trying alternative export method..." | tee -a ./build-logs/archive_build.log
             
             # Create a simpler exportOptions.plist
-            cat > ./build/exportOptions.plist << EOF
-            <?xml version="1.0" encoding="UTF-8"?>
-            <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-            <plist version="1.0">
-            <dict>
-                <key>method</key>
-                <string>ad-hoc</string>
-            </dict>
-            </plist>
-EOF
+            cat > ./build/exportOptions.plist << 'EOT'
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>method</key>
+    <string>ad-hoc</string>
+</dict>
+</plist>
+EOT
             
             xcodebuild -exportArchive -archivePath ./build/russ5.xcarchive -exportPath ./build -exportOptionsPlist ./build/exportOptions.plist | tee -a ./build-logs/export_archive_alt.log || true
           fi
@@ -303,15 +305,15 @@ EOF
           echo "App uploaded to BrowserStack. URL: $APP_URL" | tee -a ./browserstack-results/test_log.txt
           
           # Create a test spec for BrowserStack
-          cat > ./build/test/browserstack.yml << EOF
-          # BrowserStack configuration file
-          app: $APP_URL
-          devices:
-            - iPhone 14 Pro-16
-            - iPhone 13-15
-          project: "russ5"
-          testSuite: "./build/test/UITests.ipa"
-EOF
+          cat > ./build/test/browserstack.yml << EOT
+# BrowserStack configuration file
+app: $APP_URL
+devices:
+  - iPhone 14 Pro-16
+  - iPhone 13-15
+project: "russ5"
+testSuite: "./build/test/UITests.ipa"
+EOT
           
           # Save the test spec for debugging
           cp ./build/test/browserstack.yml ./browserstack-results/test_spec.yml
@@ -471,7 +473,7 @@ EOF
         find ./build -type f | sort >> ./build-logs/project/build_dir.log 2>&1 || true
         
         # Create a build summary markdown file
-        cat > ./build-logs/build_summary.md << EOF
+        cat > ./build-logs/build_summary.md << 'EOT'
 # Build Summary
 
 ## Environment
@@ -496,7 +498,9 @@ $(find ~/Library/Developer/Xcode/DerivedData -name "*.log" -type f -exec grep -l
 - Check the detailed logs for more information
 - Review Xcode project settings
 - Verify code signing configuration
-EOF
+EOT
+        # Remove quotes to allow variable expansion
+        sed -i.bak 's/\$(/$(/' ./build-logs/build_summary.md
         
     - name: Upload test results and logs
       if: always()
