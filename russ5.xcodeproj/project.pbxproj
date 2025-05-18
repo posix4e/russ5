@@ -1,0 +1,762 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		CE80ACB32DD9EBC40093FBE3 /* russ5 Extension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = CE80ACB22DD9EBC40093FBE3 /* russ5 Extension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		CE80AC9D2DD9EBC40093FBE3 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = CE80AC772DD9EBC30093FBE3 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = CE80AC7E2DD9EBC30093FBE3;
+			remoteInfo = russ5;
+		};
+		CE80ACA72DD9EBC40093FBE3 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = CE80AC772DD9EBC30093FBE3 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = CE80AC7E2DD9EBC30093FBE3;
+			remoteInfo = russ5;
+		};
+		CE80ACB42DD9EBC40093FBE3 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = CE80AC772DD9EBC30093FBE3 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = CE80ACB12DD9EBC40093FBE3;
+			remoteInfo = "russ5 Extension";
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		CE80ACD12DD9EBC40093FBE3 /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				CE80ACB32DD9EBC40093FBE3 /* russ5 Extension.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
+/* Begin PBXFileReference section */
+		CE80AC7F2DD9EBC30093FBE3 /* russ5.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = russ5.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		CE80AC9C2DD9EBC40093FBE3 /* russ5Tests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = russ5Tests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		CE80ACA62DD9EBC40093FBE3 /* russ5UITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = russ5UITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		CE80ACB22DD9EBC40093FBE3 /* russ5 Extension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = "russ5 Extension.appex"; sourceTree = BUILT_PRODUCTS_DIR; };
+/* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		CE80ACCC2DD9EBC40093FBE3 /* Exceptions for "russ5" folder in "russ5" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = CE80AC7E2DD9EBC30093FBE3 /* russ5 */;
+		};
+		CE80ACD02DD9EBC40093FBE3 /* Exceptions for "russ5 Extension" folder in "russ5 Extension" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = CE80ACB12DD9EBC40093FBE3 /* russ5 Extension */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
+/* Begin PBXFileSystemSynchronizedRootGroup section */
+		CE80AC812DD9EBC30093FBE3 /* russ5 */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				CE80ACCC2DD9EBC40093FBE3 /* Exceptions for "russ5" folder in "russ5" target */,
+			);
+			path = russ5;
+			sourceTree = "<group>";
+		};
+		CE80AC9F2DD9EBC40093FBE3 /* russ5Tests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = russ5Tests;
+			sourceTree = "<group>";
+		};
+		CE80ACA92DD9EBC40093FBE3 /* russ5UITests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = russ5UITests;
+			sourceTree = "<group>";
+		};
+		CE80ACB62DD9EBC40093FBE3 /* russ5 Extension */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				CE80ACD02DD9EBC40093FBE3 /* Exceptions for "russ5 Extension" folder in "russ5 Extension" target */,
+			);
+			explicitFolders = (
+				Resources/_locales,
+				Resources/images,
+			);
+			path = "russ5 Extension";
+			sourceTree = "<group>";
+		};
+/* End PBXFileSystemSynchronizedRootGroup section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		CE80AC7C2DD9EBC30093FBE3 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		CE80AC992DD9EBC40093FBE3 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		CE80ACA32DD9EBC40093FBE3 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		CE80ACAF2DD9EBC40093FBE3 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		CE80AC762DD9EBC30093FBE3 = {
+			isa = PBXGroup;
+			children = (
+				CE80AC812DD9EBC30093FBE3 /* russ5 */,
+				CE80AC9F2DD9EBC40093FBE3 /* russ5Tests */,
+				CE80ACA92DD9EBC40093FBE3 /* russ5UITests */,
+				CE80ACB62DD9EBC40093FBE3 /* russ5 Extension */,
+				CE80AC802DD9EBC30093FBE3 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		CE80AC802DD9EBC30093FBE3 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				CE80AC7F2DD9EBC30093FBE3 /* russ5.app */,
+				CE80AC9C2DD9EBC40093FBE3 /* russ5Tests.xctest */,
+				CE80ACA62DD9EBC40093FBE3 /* russ5UITests.xctest */,
+				CE80ACB22DD9EBC40093FBE3 /* russ5 Extension.appex */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		CE80AC7E2DD9EBC30093FBE3 /* russ5 */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = CE80ACD22DD9EBC40093FBE3 /* Build configuration list for PBXNativeTarget "russ5" */;
+			buildPhases = (
+				CE80AC7B2DD9EBC30093FBE3 /* Sources */,
+				CE80AC7C2DD9EBC30093FBE3 /* Frameworks */,
+				CE80AC7D2DD9EBC30093FBE3 /* Resources */,
+				CE80ACD12DD9EBC40093FBE3 /* Embed Foundation Extensions */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				CE80ACB52DD9EBC40093FBE3 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				CE80AC812DD9EBC30093FBE3 /* russ5 */,
+			);
+			name = russ5;
+			packageProductDependencies = (
+			);
+			productName = russ5;
+			productReference = CE80AC7F2DD9EBC30093FBE3 /* russ5.app */;
+			productType = "com.apple.product-type.application";
+		};
+		CE80AC9B2DD9EBC40093FBE3 /* russ5Tests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = CE80ACD72DD9EBC40093FBE3 /* Build configuration list for PBXNativeTarget "russ5Tests" */;
+			buildPhases = (
+				CE80AC982DD9EBC40093FBE3 /* Sources */,
+				CE80AC992DD9EBC40093FBE3 /* Frameworks */,
+				CE80AC9A2DD9EBC40093FBE3 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				CE80AC9E2DD9EBC40093FBE3 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				CE80AC9F2DD9EBC40093FBE3 /* russ5Tests */,
+			);
+			name = russ5Tests;
+			packageProductDependencies = (
+			);
+			productName = russ5Tests;
+			productReference = CE80AC9C2DD9EBC40093FBE3 /* russ5Tests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+		CE80ACA52DD9EBC40093FBE3 /* russ5UITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = CE80ACDA2DD9EBC40093FBE3 /* Build configuration list for PBXNativeTarget "russ5UITests" */;
+			buildPhases = (
+				CE80ACA22DD9EBC40093FBE3 /* Sources */,
+				CE80ACA32DD9EBC40093FBE3 /* Frameworks */,
+				CE80ACA42DD9EBC40093FBE3 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				CE80ACA82DD9EBC40093FBE3 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				CE80ACA92DD9EBC40093FBE3 /* russ5UITests */,
+			);
+			name = russ5UITests;
+			packageProductDependencies = (
+			);
+			productName = russ5UITests;
+			productReference = CE80ACA62DD9EBC40093FBE3 /* russ5UITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
+		CE80ACB12DD9EBC40093FBE3 /* russ5 Extension */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = CE80ACCD2DD9EBC40093FBE3 /* Build configuration list for PBXNativeTarget "russ5 Extension" */;
+			buildPhases = (
+				CE80ACAE2DD9EBC40093FBE3 /* Sources */,
+				CE80ACAF2DD9EBC40093FBE3 /* Frameworks */,
+				CE80ACB02DD9EBC40093FBE3 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				CE80ACB62DD9EBC40093FBE3 /* russ5 Extension */,
+			);
+			name = "russ5 Extension";
+			packageProductDependencies = (
+			);
+			productName = "russ5 Extension";
+			productReference = CE80ACB22DD9EBC40093FBE3 /* russ5 Extension.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		CE80AC772DD9EBC30093FBE3 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 1630;
+				LastUpgradeCheck = 1630;
+				TargetAttributes = {
+					CE80AC7E2DD9EBC30093FBE3 = {
+						CreatedOnToolsVersion = 16.3;
+					};
+					CE80AC9B2DD9EBC40093FBE3 = {
+						CreatedOnToolsVersion = 16.3;
+						TestTargetID = CE80AC7E2DD9EBC30093FBE3;
+					};
+					CE80ACA52DD9EBC40093FBE3 = {
+						CreatedOnToolsVersion = 16.3;
+						TestTargetID = CE80AC7E2DD9EBC30093FBE3;
+					};
+					CE80ACB12DD9EBC40093FBE3 = {
+						CreatedOnToolsVersion = 16.3;
+					};
+				};
+			};
+			buildConfigurationList = CE80AC7A2DD9EBC30093FBE3 /* Build configuration list for PBXProject "russ5" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = CE80AC762DD9EBC30093FBE3;
+			minimizedProjectReferenceProxies = 1;
+			preferredProjectObjectVersion = 77;
+			productRefGroup = CE80AC802DD9EBC30093FBE3 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				CE80AC7E2DD9EBC30093FBE3 /* russ5 */,
+				CE80AC9B2DD9EBC40093FBE3 /* russ5Tests */,
+				CE80ACA52DD9EBC40093FBE3 /* russ5UITests */,
+				CE80ACB12DD9EBC40093FBE3 /* russ5 Extension */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		CE80AC7D2DD9EBC30093FBE3 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		CE80AC9A2DD9EBC40093FBE3 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		CE80ACA42DD9EBC40093FBE3 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		CE80ACB02DD9EBC40093FBE3 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		CE80AC7B2DD9EBC30093FBE3 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		CE80AC982DD9EBC40093FBE3 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		CE80ACA22DD9EBC40093FBE3 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		CE80ACAE2DD9EBC40093FBE3 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		CE80AC9E2DD9EBC40093FBE3 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = CE80AC7E2DD9EBC30093FBE3 /* russ5 */;
+			targetProxy = CE80AC9D2DD9EBC40093FBE3 /* PBXContainerItemProxy */;
+		};
+		CE80ACA82DD9EBC40093FBE3 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = CE80AC7E2DD9EBC30093FBE3 /* russ5 */;
+			targetProxy = CE80ACA72DD9EBC40093FBE3 /* PBXContainerItemProxy */;
+		};
+		CE80ACB52DD9EBC40093FBE3 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = CE80ACB12DD9EBC40093FBE3 /* russ5 Extension */;
+			targetProxy = CE80ACB42DD9EBC40093FBE3 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		CE80ACCE2DD9EBC40093FBE3 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 2858MX5336;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "russ5 Extension/Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = "russ5 Extension";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				OTHER_LDFLAGS = (
+					"-framework",
+					SafariServices,
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = xyz.russ.russ5.Extension;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		CE80ACCF2DD9EBC40093FBE3 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 2858MX5336;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "russ5 Extension/Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = "russ5 Extension";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				OTHER_LDFLAGS = (
+					"-framework",
+					SafariServices,
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = xyz.russ.russ5.Extension;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		CE80ACD32DD9EBC40093FBE3 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 2858MX5336;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = russ5/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = russ5;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchStoryboardName = LaunchScreen;
+				INFOPLIST_KEY_UIMainStoryboardFile = Main;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				OTHER_LDFLAGS = (
+					"-framework",
+					SafariServices,
+					"-framework",
+					WebKit,
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = xyz.russ.russ5;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		CE80ACD42DD9EBC40093FBE3 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 2858MX5336;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = russ5/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = russ5;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchStoryboardName = LaunchScreen;
+				INFOPLIST_KEY_UIMainStoryboardFile = Main;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				OTHER_LDFLAGS = (
+					"-framework",
+					SafariServices,
+					"-framework",
+					WebKit,
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = xyz.russ.russ5;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		CE80ACD52DD9EBC40093FBE3 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				DEVELOPMENT_TEAM = 2858MX5336;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.4;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		CE80ACD62DD9EBC40093FBE3 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				DEVELOPMENT_TEAM = 2858MX5336;
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.4;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		CE80ACD82DD9EBC40093FBE3 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 2858MX5336;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = xyz.russ.russ5Tests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/russ5.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/russ5";
+			};
+			name = Debug;
+		};
+		CE80ACD92DD9EBC40093FBE3 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 2858MX5336;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = xyz.russ.russ5Tests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/russ5.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/russ5";
+			};
+			name = Release;
+		};
+		CE80ACDB2DD9EBC40093FBE3 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 2858MX5336;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = xyz.russ.russ5UITests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = russ5;
+			};
+			name = Debug;
+		};
+		CE80ACDC2DD9EBC40093FBE3 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 2858MX5336;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = xyz.russ.russ5UITests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = russ5;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		CE80AC7A2DD9EBC30093FBE3 /* Build configuration list for PBXProject "russ5" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				CE80ACD52DD9EBC40093FBE3 /* Debug */,
+				CE80ACD62DD9EBC40093FBE3 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		CE80ACCD2DD9EBC40093FBE3 /* Build configuration list for PBXNativeTarget "russ5 Extension" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				CE80ACCE2DD9EBC40093FBE3 /* Debug */,
+				CE80ACCF2DD9EBC40093FBE3 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		CE80ACD22DD9EBC40093FBE3 /* Build configuration list for PBXNativeTarget "russ5" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				CE80ACD32DD9EBC40093FBE3 /* Debug */,
+				CE80ACD42DD9EBC40093FBE3 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		CE80ACD72DD9EBC40093FBE3 /* Build configuration list for PBXNativeTarget "russ5Tests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				CE80ACD82DD9EBC40093FBE3 /* Debug */,
+				CE80ACD92DD9EBC40093FBE3 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		CE80ACDA2DD9EBC40093FBE3 /* Build configuration list for PBXNativeTarget "russ5UITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				CE80ACDB2DD9EBC40093FBE3 /* Debug */,
+				CE80ACDC2DD9EBC40093FBE3 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = CE80AC772DD9EBC30093FBE3 /* Project object */;
+}
