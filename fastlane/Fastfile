@@ -44,21 +44,26 @@ platform :ios do
     # Ensure we have the right certificates and profiles
     setup_profiles
     
-    # Update project settings for match profiles
+    # Update project settings for the main app
     update_code_signing_settings(
       use_automatic_signing: false,
       path: "russ5.xcodeproj",
       team_id: ENV["TEAM_ID"],
-      targets: ["russ5", "russ5 Extension"],
+      target_filter: "russ5",
       code_sign_identity: "Apple Development",
-      profile_name: {
-        "russ5" => "match Development xyz.russ.russ5",
-        "russ5 Extension" => "match Development xyz.russ.russ5.Extension"
-      },
-      bundle_identifier: {
-        "russ5" => "xyz.russ.russ5",
-        "russ5 Extension" => "xyz.russ.russ5.Extension"
-      }
+      profile_name: "match Development xyz.russ.russ5",
+      bundle_identifier: "xyz.russ.russ5"
+    )
+    
+    # Update project settings for the extension
+    update_code_signing_settings(
+      use_automatic_signing: false,
+      path: "russ5.xcodeproj",
+      team_id: ENV["TEAM_ID"],
+      target_filter: "russ5 Extension",
+      code_sign_identity: "Apple Development",
+      profile_name: "match Development xyz.russ.russ5.Extension",
+      bundle_identifier: "xyz.russ.russ5.Extension"
     )
     
     # Build the app
@@ -76,21 +81,26 @@ platform :ios do
   
   desc "Build the app with manual signing"
   lane :build_manual do
-    # Update project settings for manual signing
+    # Update project settings for the main app
     update_code_signing_settings(
       use_automatic_signing: false,
       path: "russ5.xcodeproj",
       team_id: ENV["TEAM_ID"],
-      targets: ["russ5", "russ5 Extension"],
+      target_filter: "russ5",
       code_sign_identity: "Apple Development",
-      profile_name: {
-        "russ5" => ENV["PROVISIONING_PROFILE_SPECIFIER"],
-        "russ5 Extension" => ENV["EXTENSION_PROVISIONING_PROFILE_SPECIFIER"]
-      },
-      bundle_identifier: {
-        "russ5" => "xyz.russ.russ5",
-        "russ5 Extension" => "xyz.russ.russ5.Extension"
-      }
+      profile_name: ENV["PROVISIONING_PROFILE_SPECIFIER"],
+      bundle_identifier: "xyz.russ.russ5"
+    )
+    
+    # Update project settings for the extension
+    update_code_signing_settings(
+      use_automatic_signing: false,
+      path: "russ5.xcodeproj",
+      team_id: ENV["TEAM_ID"],
+      target_filter: "russ5 Extension",
+      code_sign_identity: "Apple Development",
+      profile_name: ENV["EXTENSION_PROVISIONING_PROFILE_SPECIFIER"],
+      bundle_identifier: "xyz.russ.russ5.Extension"
     )
     
     # Build the app
