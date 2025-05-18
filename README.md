@@ -212,12 +212,21 @@ xcodebuild -project russ5.xcodeproj -scheme "russ5" -allowProvisioningUpdates bu
 
 To test Fastlane Match locally before pushing to GitHub:
 
-1. **Set up environment variables**:
+1. **Set up environment variables** (either export them or create a `.env` file):
    ```bash
+   # Option 1: Export variables
    export TEAM_ID="YOUR_TEAM_ID"
    export FASTLANE_APPLE_ID="YOUR_APPLE_ID"
    export MATCH_PASSWORD="YOUR_MATCH_PASSWORD"
    export MATCH_GIT_URL="https://github.com/yourusername/russ5-certificates.git"
+   
+   # Option 2: Create a .env file (recommended)
+   cat > .env << EOL
+   TEAM_ID=YOUR_TEAM_ID
+   FASTLANE_APPLE_ID=YOUR_APPLE_ID
+   MATCH_PASSWORD=YOUR_MATCH_PASSWORD
+   MATCH_GIT_URL=https://github.com/yourusername/russ5-certificates.git
+   EOL
    ```
 
 2. **Run the test script**:
@@ -226,11 +235,62 @@ To test Fastlane Match locally before pushing to GitHub:
    ```
 
 This script will:
-1. Sync certificates and profiles using Fastlane Match
-2. Try to build the app using the `build_dev` lane
-3. If that fails, try the alternative approach with `build_dev_alt` lane
+1. Load environment variables from `.env` file (if it exists)
+2. Sync certificates and profiles using Fastlane Match
+3. Try to build the app using the `build_dev` lane
+4. If that fails, try the alternative approach with `build_dev_alt` lane
 
-You can also run just the sync step without building:
+### Available npm Scripts for Fastlane
+
+The project includes several npm scripts to make working with Fastlane easier:
+
+#### Match Commands
+
 ```bash
+# Sync development certificates and profiles
+npm run match:development
+
+# Sync App Store certificates and profiles
+npm run match:appstore
+
+# Sync Ad Hoc certificates and profiles
+npm run match:adhoc
+
+# Nuke (remove) development certificates and profiles
+npm run match:nuke:development
+
+# Nuke (remove) App Store certificates and profiles
+npm run match:nuke:appstore
+
+# Nuke (remove) Ad Hoc certificates and profiles
+npm run match:nuke:adhoc
+```
+
+#### Lane Commands
+
+```bash
+# Run the build_dev lane (primary approach)
+npm run lane:build_dev
+
+# Run the build_dev_alt lane (alternative approach)
+npm run lane:build_dev_alt
+
+# Run the build_manual lane (for manual signing)
+npm run lane:build_manual
+
+# Run the setup_profiles lane (to sync profiles)
+npm run lane:setup_profiles
+```
+
+#### Utility Commands
+
+```bash
+# Load environment variables from .env file
+npm run load-env
+
+# Sync development certificates and profiles
 npm run match-sync
+
+# Test the full workflow (sync profiles and build)
+npm run match-test
 ```

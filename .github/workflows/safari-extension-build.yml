@@ -67,7 +67,7 @@ jobs:
           fi
           
           # Run match to sync certificates and profiles
-          bundle exec fastlane match development
+          npm run match:development
         else
           # Fall back to manual signing setup
           echo "Using manual signing setup..."
