@@ -47,37 +47,95 @@ jobs:
         mkdir -p $HOME/.browserstack
         echo "{ \"username\": \"$BROWSERSTACK_USERNAME\", \"key\": \"$BROWSERSTACK_ACCESS_KEY\" }" > $HOME/.browserstack/config.json
         
-    - name: Check Xcode project format
+    - name: Check Xcode project format and structure
       run: |
+        # Create logs directory
+        mkdir -p ./build-logs
+        
         # Print Xcode version
-        xcodebuild -version
+        xcodebuild -version | tee ./build-logs/xcode_version.log
+        
+        # Check if the project exists
+        if [ ! -d "russ5.xcodeproj" ]; then
+          echo "ERROR: russ5.xcodeproj directory not found!" | tee -a ./build-logs/project_check.log
+          echo "Current directory contents:" | tee -a ./build-logs/project_check.log
+          ls -la | tee -a ./build-logs/project_check.log
+          exit 1
+        fi
+        
+        # Check project structure
+        echo "Xcode project structure:" | tee -a ./build-logs/project_check.log
+        ls -la russ5.xcodeproj/ | tee -a ./build-logs/project_check.log
+        
+        # Check if project.pbxproj exists
+        if [ ! -f "russ5.xcodeproj/project.pbxproj" ]; then
+          echo "ERROR: project.pbxproj not found!" | tee -a ./build-logs/project_check.log
+          exit 1
+        fi
+        
+        # Check project.pbxproj format
+        echo "Checking project.pbxproj format..." | tee -a ./build-logs/project_check.log
+        file russ5.xcodeproj/project.pbxproj | tee -a ./build-logs/project_check.log
         
         # Check if the project can be opened
         if ! xcodebuild -list -project russ5.xcodeproj &>/dev/null; then
-          echo "Project format is incompatible. Attempting to convert..."
+          echo "Project format is incompatible. Attempting to convert..." | tee -a ./build-logs/project_check.log
           # Try to convert the project format if needed
           plutil -convert xml1 russ5.xcodeproj/project.pbxproj
+          
+          # Check if conversion was successful
+          if ! xcodebuild -list -project russ5.xcodeproj &>/dev/null; then
+            echo "Project conversion failed. Trying to diagnose issues..." | tee -a ./build-logs/project_check.log
+            # Save a copy of the project file for analysis
+            cp russ5.xcodeproj/project.pbxproj ./build-logs/project.pbxproj.backup
+            # Try to validate the plist
+            plutil -lint russ5.xcodeproj/project.pbxproj | tee -a ./build-logs/project_check.log
+          else
+            echo "Project conversion successful!" | tee -a ./build-logs/project_check.log
+          fi
+        else
+          echo "Project format is compatible!" | tee -a ./build-logs/project_check.log
         fi
         
     - name: Build and Test
       run: |
+        # Create logs directory
+        mkdir -p ./build-logs
+        
         # Try to list available schemes
         echo "Available schemes:"
-        xcodebuild -list -project russ5.xcodeproj || true
+        xcodebuild -list -project russ5.xcodeproj | tee ./build-logs/available_schemes.log || true
         
         # Try to list available destinations
         echo "Available destinations:"
-        xcodebuild -showdestinations -project russ5.xcodeproj || true
+        xcodebuild -showdestinations -project russ5.xcodeproj | tee ./build-logs/available_destinations.log || true
         
         # Use a more compatible approach with project format
         set +e
-        xcodebuild -project russ5.xcodeproj -scheme "russ5" -sdk iphonesimulator -destination 'platform=iOS Simulator,name=iPhone 14' -allowProvisioningUpdates -allowProvisioningDeviceRegistration clean build
+        echo "Running primary build..."
+        xcodebuild -project russ5.xcodeproj -scheme "russ5" -sdk iphonesimulator -destination 'platform=iOS Simulator,name=iPhone 14' -allowProvisioningUpdates -allowProvisioningDeviceRegistration clean build | tee ./build-logs/primary_build.log
         BUILD_RESULT=$?
         set -e
         
+        # Save build result
+        echo "Primary build exit code: $BUILD_RESULT" >> ./build-logs/build_results.log
+        
         if [ $BUILD_RESULT -ne 0 ]; then
           echo "Build failed with exit code $BUILD_RESULT. Trying alternative build approach..."
-          xcodebuild -project russ5.xcodeproj -scheme "russ5" -sdk iphonesimulator -destination 'platform=iOS Simulator,OS=latest' -allowProvisioningUpdates clean build || true
+          xcodebuild -project russ5.xcodeproj -scheme "russ5" -sdk iphonesimulator -destination 'platform=iOS Simulator,OS=latest' -allowProvisioningUpdates clean build | tee ./build-logs/alternative_build.log || true
+          ALT_BUILD_RESULT=$?
+          echo "Alternative build exit code: $ALT_BUILD_RESULT" >> ./build-logs/build_results.log
+        fi
+        
+        # Capture project structure for debugging
+        echo "Capturing project structure..."
+        find . -type f -name "*.swift" | sort > ./build-logs/swift_files.log
+        find . -type f -name "*.h" -o -name "*.m" | sort > ./build-logs/objc_files.log
+        
+        # Check if Info.plist exists and capture its content
+        if [ -f "russ5/Info.plist" ]; then
+          echo "Capturing Info.plist content..."
+          plutil -p russ5/Info.plist > ./build-logs/info_plist.log
         fi
         
     - name: Create exportOptions.plist for BrowserStack testing
@@ -228,20 +286,45 @@ jobs:
           echo "Failed to upload app to BrowserStack"
         fi
         
-    - name: Create empty test results if none exist
+    - name: Create detailed logs for artifacts
       if: always()
       run: |
+        # Create directories for logs
         mkdir -p ~/Library/Developer/Xcode/DerivedData/Logs/Test
         mkdir -p ./browserstack-results
-        touch ./browserstack-results/test_summary.txt
+        mkdir -p ./build-logs
+        
+        # Create summary file
         echo "BrowserStack test run completed at $(date)" > ./browserstack-results/test_summary.txt
         
-    - name: Upload test results
+        # Capture build logs
+        echo "=== Xcode Build Log ===" > ./build-logs/build_summary.log
+        find ~/Library/Developer/Xcode/DerivedData -name "*.log" -type f -exec cat {} \; >> ./build-logs/build_summary.log 2>/dev/null || true
+        
+        # Capture environment information
+        echo "=== Environment Information ===" > ./build-logs/environment.log
+        echo "macOS Version:" >> ./build-logs/environment.log
+        sw_vers >> ./build-logs/environment.log 2>&1 || true
+        echo "\nXcode Version:" >> ./build-logs/environment.log
+        xcodebuild -version >> ./build-logs/environment.log 2>&1 || true
+        echo "\nInstalled Simulators:" >> ./build-logs/environment.log
+        xcrun simctl list devices >> ./build-logs/environment.log 2>&1 || true
+        
+        # Capture project structure
+        echo "=== Project Structure ===" > ./build-logs/project_structure.log
+        find . -type f -name "*.swift" | sort >> ./build-logs/project_structure.log 2>&1 || true
+        
+        # Capture Xcode project settings
+        echo "=== Xcode Project Settings ===" > ./build-logs/project_settings.log
+        xcodebuild -list -project russ5.xcodeproj >> ./build-logs/project_settings.log 2>&1 || true
+        
+    - name: Upload test results and logs
       if: always()
       uses: actions/upload-artifact@v4
       with:
-        name: test-results
+        name: test-results-and-logs
         path: |
           ~/Library/Developer/Xcode/DerivedData/**/Logs/Test/*.xcresult
           ./browserstack-results/**
-        if-no-files-found: ignore
+          ./build-logs/**
+        if-no-files-found: warn
