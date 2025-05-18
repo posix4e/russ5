@@ -70,6 +70,14 @@
 			);
 			target = CE80ACB12DD9EBC40093FBE3 /* russ5 Extension */;
 		};
+		CE80ACE42DD9ED380093FBE3 /* Exceptions for "russ5" folder in "russ5 Extension" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				HistoryDatabase.swift,
+				WebHistoryItem.swift,
+			);
+			target = CE80ACB12DD9EBC40093FBE3 /* russ5 Extension */;
+		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -77,6 +85,7 @@
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
 				CE80ACCC2DD9EBC40093FBE3 /* Exceptions for "russ5" folder in "russ5" target */,
+				CE80ACE42DD9ED380093FBE3 /* Exceptions for "russ5" folder in "russ5 Extension" target */,
 			);
 			path = russ5;
 			sourceTree = "<group>";
@@ -386,6 +395,7 @@
 		CE80ACCE2DD9EBC40093FBE3 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = "russ5 Extension/russ5 Extension.entitlements";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 2858MX5336;
@@ -416,6 +426,7 @@
 		CE80ACCF2DD9EBC40093FBE3 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = "russ5 Extension/russ5 Extension.entitlements";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 2858MX5336;
@@ -448,6 +459,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = russ5/russ5.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 2858MX5336;
@@ -484,6 +496,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = russ5/russ5.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 2858MX5336;
