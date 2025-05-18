@@ -15,10 +15,16 @@ echo "MATCH_GIT_URL: $MATCH_GIT_URL"
 
 # Run match to sync certificates and profiles
 echo "Running match development..."
-bundle exec fastlane match development
+fastlane match development --app_identifier xyz.russ.russ5,xyz.russ.russ5.Extension
 
-# Run the build_dev lane
-echo "Running build_dev lane..."
-bundle exec fastlane build_dev
+# Try the first approach
+echo "Running build_dev lane (first approach)..."
+fastlane build_dev
+
+# If the first approach fails, try the alternative approach
+if [ $? -ne 0 ]; then
+  echo "First approach failed, trying alternative approach..."
+  fastlane build_dev_alt
+fi
 
 echo "Test completed!"
