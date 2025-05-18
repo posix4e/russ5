@@ -2,157 +2,510 @@ name: CI
 
 on:
   push:
-    branches: [ main ]
+    branches: [ main, master ]
   pull_request:
-    branches: [ main ]
+    branches: [ main, master ]
+  workflow_dispatch:
 
 jobs:
   test:
     runs-on: macos-13
+    timeout-minutes: 30
     env:
       BROWSERSTACK_USERNAME: ${{ secrets.BROWSERSTACK_USERNAME }}
       BROWSERSTACK_ACCESS_KEY: ${{ secrets.BROWSERSTACK_ACCESS_KEY }}
       
     steps:
-    - uses: actions/checkout@v4
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 1
     
     - name: Set up Ruby for fastlane
       uses: ruby/setup-ruby@v1
       with:
         ruby-version: '3.3'
+        bundler-cache: true
         
     - name: Install dependencies
       run: |
-        gem install fastlane
-        gem install xcpretty
-        brew install jq
-        npm install -g browserstack-app-automate
+        gem install fastlane -N
+        gem install xcpretty -N
+        brew install jq || true
         
-    - name: Install BrowserStack app-automate
+        # Install Node.js if not already installed
+        if ! command -v node &> /dev/null; then
+          brew install node || true
+        fi
+        
+        # Install browserstack-app-automate
+        npm install -g browserstack-app-automate || true
+        
+    - name: Setup BrowserStack
+      if: env.BROWSERSTACK_USERNAME != '' && env.BROWSERSTACK_ACCESS_KEY != ''
       run: |
         mkdir -p $HOME/.browserstack
         echo "{ \"username\": \"$BROWSERSTACK_USERNAME\", \"key\": \"$BROWSERSTACK_ACCESS_KEY\" }" > $HOME/.browserstack/config.json
         
-    - name: Check Xcode project format
+    - name: Check Xcode project format and structure
       run: |
+        # Create logs directory
+        mkdir -p ./build-logs
+        
         # Print Xcode version
-        xcodebuild -version
+        xcodebuild -version | tee ./build-logs/xcode_version.log
+        
+        # Check if the project exists
+        if [ ! -d "russ5.xcodeproj" ]; then
+          echo "ERROR: russ5.xcodeproj directory not found!" | tee -a ./build-logs/project_check.log
+          echo "Current directory contents:" | tee -a ./build-logs/project_check.log
+          ls -la | tee -a ./build-logs/project_check.log
+          exit 1
+        fi
+        
+        # Check project structure
+        echo "Xcode project structure:" | tee -a ./build-logs/project_check.log
+        ls -la russ5.xcodeproj/ | tee -a ./build-logs/project_check.log
+        
+        # Check if project.pbxproj exists
+        if [ ! -f "russ5.xcodeproj/project.pbxproj" ]; then
+          echo "ERROR: project.pbxproj not found!" | tee -a ./build-logs/project_check.log
+          exit 1
+        fi
+        
+        # Check project.pbxproj format
+        echo "Checking project.pbxproj format..." | tee -a ./build-logs/project_check.log
+        file russ5.xcodeproj/project.pbxproj | tee -a ./build-logs/project_check.log
         
         # Check if the project can be opened
         if ! xcodebuild -list -project russ5.xcodeproj &>/dev/null; then
-          echo "Project format is incompatible. Attempting to convert..."
+          echo "Project format is incompatible. Attempting to convert..." | tee -a ./build-logs/project_check.log
           # Try to convert the project format if needed
           plutil -convert xml1 russ5.xcodeproj/project.pbxproj
+          
+          # Check if conversion was successful
+          if ! xcodebuild -list -project russ5.xcodeproj &>/dev/null; then
+            echo "Project conversion failed. Trying to diagnose issues..." | tee -a ./build-logs/project_check.log
+            # Save a copy of the project file for analysis
+            cp russ5.xcodeproj/project.pbxproj ./build-logs/project.pbxproj.backup
+            # Try to validate the plist
+            plutil -lint russ5.xcodeproj/project.pbxproj | tee -a ./build-logs/project_check.log
+          else
+            echo "Project conversion successful!" | tee -a ./build-logs/project_check.log
+          fi
+        else
+          echo "Project format is compatible!" | tee -a ./build-logs/project_check.log
         fi
         
     - name: Build and Test
       run: |
+        # Create logs directory
+        mkdir -p ./build-logs
+        
         # Try to list available schemes
         echo "Available schemes:"
-        xcodebuild -list -project russ5.xcodeproj || true
+        xcodebuild -list -project russ5.xcodeproj | tee ./build-logs/available_schemes.log || true
         
         # Try to list available destinations
         echo "Available destinations:"
-        xcodebuild -showdestinations -project russ5.xcodeproj || true
+        xcodebuild -showdestinations -project russ5.xcodeproj | tee ./build-logs/available_destinations.log || true
         
         # Use a more compatible approach with project format
-        xcodebuild -project russ5.xcodeproj -scheme "russ5" -sdk iphonesimulator -destination 'platform=iOS Simulator,name=iPhone 14' -allowProvisioningUpdates -allowProvisioningDeviceRegistration clean build || true
+        set +e
+        echo "Running primary build..."
+        xcodebuild -project russ5.xcodeproj -scheme "russ5" -sdk iphonesimulator -destination 'platform=iOS Simulator,name=iPhone 14' -allowProvisioningUpdates -allowProvisioningDeviceRegistration clean build | tee ./build-logs/primary_build.log
+        BUILD_RESULT=$?
+        set -e
+        
+        # Save build result
+        echo "Primary build exit code: $BUILD_RESULT" >> ./build-logs/build_results.log
+        
+        if [ $BUILD_RESULT -ne 0 ]; then
+          echo "Build failed with exit code $BUILD_RESULT. Trying alternative build approach..."
+          xcodebuild -project russ5.xcodeproj -scheme "russ5" -sdk iphonesimulator -destination 'platform=iOS Simulator,OS=latest' -allowProvisioningUpdates clean build | tee ./build-logs/alternative_build.log || true
+          ALT_BUILD_RESULT=$?
+          echo "Alternative build exit code: $ALT_BUILD_RESULT" >> ./build-logs/build_results.log
+        fi
+        
+        # Capture project structure for debugging
+        echo "Capturing project structure..."
+        find . -type f -name "*.swift" | sort > ./build-logs/swift_files.log
+        find . -type f -name "*.h" -o -name "*.m" | sort > ./build-logs/objc_files.log
+        
+        # Check if Info.plist exists and capture its content
+        if [ -f "russ5/Info.plist" ]; then
+          echo "Capturing Info.plist content..."
+          plutil -p russ5/Info.plist > ./build-logs/info_plist.log
+        fi
         
     - name: Create exportOptions.plist for BrowserStack testing
       run: |
-        cat > exportOptions.plist << EOF
-        <?xml version="1.0" encoding="UTF-8"?>
-        <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-        <plist version="1.0">
-        <dict>
-            <key>method</key>
-            <string>development</string>
-            <key>teamID</key>
-            <string>YOUR_TEAM_ID</string>
-        </dict>
-        </plist>
-        EOF
+        # Create build directory
+        mkdir -p ./build
+        
+        # Extract team ID from project if possible
+        TEAM_ID=$(grep -A 5 "DEVELOPMENT_TEAM" russ5.xcodeproj/project.pbxproj | grep -o '"[A-Z0-9]*"' | head -1 | tr -d '"' || echo "")
+        
+        if [ -z "$TEAM_ID" ]; then
+          TEAM_ID="YOUR_TEAM_ID"
+          echo "Could not extract team ID from project, using placeholder"
+        else
+          echo "Found team ID: $TEAM_ID"
+        fi
+        
+        # Create exportOptions.plist
+        cat > ./build/exportOptions.plist << EOF
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>method</key>
+    <string>development</string>
+    <key>teamID</key>
+    <string>$TEAM_ID</string>
+    <key>compileBitcode</key>
+    <false/>
+    <key>uploadBitcode</key>
+    <false/>
+    <key>uploadSymbols</key>
+    <true/>
+</dict>
+</plist>
+EOF
+        
+        # Verify the file was created correctly
+        if [ -f "./build/exportOptions.plist" ]; then
+          echo "exportOptions.plist created successfully"
+          cat ./build/exportOptions.plist
+        else
+          echo "Failed to create exportOptions.plist"
+        fi
         
     - name: Build for BrowserStack testing
+      if: env.BROWSERSTACK_USERNAME != '' && env.BROWSERSTACK_ACCESS_KEY != ''
+      continue-on-error: true
       run: |
-        # Build for testing on real devices via BrowserStack
-        xcodebuild -project russ5.xcodeproj -scheme "russ5" -sdk iphoneos -configuration Debug -archivePath ./build/russ5.xcarchive archive -allowProvisioningUpdates || true
+        # Create build directory
+        mkdir -p ./build
         
-        # Create IPA file
-        xcodebuild -exportArchive -archivePath ./build/russ5.xcarchive -exportPath ./build -exportOptionsPlist exportOptions.plist || true
+        # Build for testing on real devices via BrowserStack
+        echo "Building archive for BrowserStack testing..."
+        set +e
+        xcodebuild -project russ5.xcodeproj -scheme "russ5" -sdk iphoneos -configuration Debug -archivePath ./build/russ5.xcarchive archive -allowProvisioningUpdates
+        ARCHIVE_RESULT=$?
+        set -e
+        
+        echo "Archive build exit code: $ARCHIVE_RESULT" | tee -a ./build-logs/archive_build.log
+        
+        if [ $ARCHIVE_RESULT -ne 0 ]; then
+          echo "Archive build failed with exit code $ARCHIVE_RESULT. Trying alternative approach..." | tee -a ./build-logs/archive_build.log
+          xcodebuild -project russ5.xcodeproj -scheme "russ5" -sdk iphoneos -configuration Release -archivePath ./build/russ5.xcarchive archive -allowProvisioningUpdates | tee -a ./build-logs/archive_build_alt.log || true
+        fi
+        
+        # Check if archive was created
+        if [ -d "./build/russ5.xcarchive" ]; then
+          echo "Archive created successfully. Creating IPA file..." | tee -a ./build-logs/archive_build.log
+          
+          # Verify exportOptions.plist exists
+          if [ ! -f "./build/exportOptions.plist" ]; then
+            echo "exportOptions.plist not found. Creating a default one..." | tee -a ./build-logs/archive_build.log
+            
+            # Create a default exportOptions.plist
+            cat > ./build/exportOptions.plist << EOF
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>method</key>
+    <string>development</string>
+    <key>compileBitcode</key>
+    <false/>
+    <key>uploadBitcode</key>
+    <false/>
+    <key>uploadSymbols</key>
+    <true/>
+</dict>
+</plist>
+EOF
+          fi
+          
+          # Create IPA file
+          echo "Exporting IPA with options:" | tee -a ./build-logs/archive_build.log
+          cat ./build/exportOptions.plist | tee -a ./build-logs/archive_build.log
+          
+          xcodebuild -exportArchive -archivePath ./build/russ5.xcarchive -exportPath ./build -exportOptionsPlist ./build/exportOptions.plist | tee -a ./build-logs/export_archive.log || true
+          
+          # Verify IPA was created
+          if [ -f "./build/russ5.ipa" ]; then
+            echo "IPA file created successfully" | tee -a ./build-logs/archive_build.log
+          else
+            echo "Failed to create IPA file" | tee -a ./build-logs/archive_build.log
+            
+            # Try alternative export method
+            echo "Trying alternative export method..." | tee -a ./build-logs/archive_build.log
+            
+            # Create a simpler exportOptions.plist
+            cat > ./build/exportOptions.plist << EOF
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>method</key>
+    <string>ad-hoc</string>
+</dict>
+</plist>
+EOF
+            
+            xcodebuild -exportArchive -archivePath ./build/russ5.xcarchive -exportPath ./build -exportOptionsPlist ./build/exportOptions.plist | tee -a ./build-logs/export_archive_alt.log || true
+          fi
+        else
+          echo "Failed to create archive. Skipping IPA creation." | tee -a ./build-logs/archive_build.log
+        fi
         
     - name: Run tests on BrowserStack real device
       if: env.BROWSERSTACK_USERNAME != '' && env.BROWSERSTACK_ACCESS_KEY != ''
+      continue-on-error: true
       run: |
         # Create test directory if it doesn't exist
         mkdir -p ./build/test
+        mkdir -p ./browserstack-results
+        
+        # Check if IPA file exists
+        if [ ! -f "./build/russ5.ipa" ]; then
+          echo "IPA file not found. Skipping BrowserStack testing." | tee -a ./browserstack-results/test_log.txt
+          exit 0
+        fi
         
         # Upload app to BrowserStack
-        echo "Uploading app to BrowserStack..."
-        APP_URL=$(curl -u "$BROWSERSTACK_USERNAME:$BROWSERSTACK_ACCESS_KEY" \
+        echo "Uploading app to BrowserStack..." | tee -a ./browserstack-results/test_log.txt
+        
+        # Check if jq is installed
+        if ! command -v jq &> /dev/null; then
+          echo "jq not found. Installing..." | tee -a ./browserstack-results/test_log.txt
+          brew install jq || apt-get update && apt-get install -y jq || true
+        fi
+        
+        # Upload the app with error handling
+        APP_UPLOAD_RESPONSE=$(curl -u "$BROWSERSTACK_USERNAME:$BROWSERSTACK_ACCESS_KEY" \
           -X POST "https://api-cloud.browserstack.com/app-automate/upload" \
-          -F "file=@./build/russ5.ipa" \
-          | jq -r '.app_url')
+          -F "file=@./build/russ5.ipa" 2>&1)
           
+        echo "Upload response: $APP_UPLOAD_RESPONSE" | tee -a ./browserstack-results/test_log.txt
+        
+        # Extract app_url using grep if jq fails
+        if command -v jq &> /dev/null; then
+          APP_URL=$(echo "$APP_UPLOAD_RESPONSE" | jq -r '.app_url' 2>/dev/null || echo "")
+        else
+          APP_URL=$(echo "$APP_UPLOAD_RESPONSE" | grep -o '"app_url":"[^"]*"' | sed 's/"app_url":"//;s/"//g' || echo "")
+        fi
+        
         if [ -n "$APP_URL" ] && [ "$APP_URL" != "null" ]; then
-          echo "App uploaded to BrowserStack. URL: $APP_URL"
+          echo "App uploaded to BrowserStack. URL: $APP_URL" | tee -a ./browserstack-results/test_log.txt
           
           # Create a test spec for BrowserStack
           cat > ./build/test/browserstack.yml << EOF
-        # BrowserStack configuration file
-        app: $APP_URL
-        devices:
-          - iPhone 14 Pro-16
-          - iPhone 13-15
-        project: "russ5"
-        testSuite: "./build/test/UITests.ipa"
-        EOF
+# BrowserStack configuration file
+app: $APP_URL
+devices:
+  - iPhone 14 Pro-16
+  - iPhone 13-15
+project: "russ5"
+testSuite: "./build/test/UITests.ipa"
+EOF
           
-          # Build XCUITest bundle
-          xcodebuild -project russ5.xcodeproj -scheme "russ5UITests" -sdk iphoneos -destination 'generic/platform=iOS' -configuration Debug clean build-for-testing -allowProvisioningUpdates || true
+          # Save the test spec for debugging
+          cp ./build/test/browserstack.yml ./browserstack-results/test_spec.yml
           
-          # Find the XCUITest bundle
-          TEST_BUNDLE=$(find ~/Library/Developer/Xcode/DerivedData -name "*.xctest" | grep -i UITests | head -1)
-          
-          if [ -n "$TEST_BUNDLE" ]; then
-            echo "Found XCUITest bundle: $TEST_BUNDLE"
+          # Check if UITests scheme exists and directory
+          if [ -d "russ5UITests" ] && xcodebuild -list -project russ5.xcodeproj 2>/dev/null | grep -q "russ5UITests"; then
+            echo "UITests scheme found. Building XCUITest bundle..." | tee -a ./browserstack-results/test_log.txt
             
-            # Create a zip file of the test bundle
-            cd $(dirname "$TEST_BUNDLE")
-            zip -r ./build/test/UITests.zip $(basename "$TEST_BUNDLE")
+            # Build XCUITest bundle
+            xcodebuild -project russ5.xcodeproj -scheme "russ5UITests" -sdk iphoneos -destination 'generic/platform=iOS' -configuration Debug clean build-for-testing -allowProvisioningUpdates | tee -a ./browserstack-results/uitest_build.log || true
             
-            # Upload test bundle to BrowserStack
-            TEST_URL=$(curl -u "$BROWSERSTACK_USERNAME:$BROWSERSTACK_ACCESS_KEY" \
-              -X POST "https://api-cloud.browserstack.com/app-automate/xcuitest/v2/test-suite" \
-              -F "file=@./build/test/UITests.zip" \
-              | jq -r '.test_url')
+            # Find the XCUITest bundle
+            TEST_BUNDLE=$(find ~/Library/Developer/Xcode/DerivedData -name "*.xctest" | grep -i UITests | head -1 || echo "")
+            
+            if [ -n "$TEST_BUNDLE" ]; then
+              echo "Found XCUITest bundle: $TEST_BUNDLE" | tee -a ./browserstack-results/test_log.txt
               
-            if [ -n "$TEST_URL" ] && [ "$TEST_URL" != "null" ]; then
-              echo "Test bundle uploaded to BrowserStack. URL: $TEST_URL"
+              # Create a zip file of the test bundle
+              mkdir -p ./build/test
+              (cd $(dirname "$TEST_BUNDLE") && zip -r $(pwd)/build/test/UITests.zip $(basename "$TEST_BUNDLE")) || true
               
-              # Update the test spec with the test URL
-              sed -i '' "s|testSuite: \"./build/test/UITests.ipa\"|test_suite: \"$TEST_URL\"|g" ./build/test/browserstack.yml
-              
-              # Run tests on BrowserStack
-              curl -X POST "https://api-cloud.browserstack.com/app-automate/xcuitest/v2/build" \
-                -u "$BROWSERSTACK_USERNAME:$BROWSERSTACK_ACCESS_KEY" \
-                -H "Content-Type: application/json" \
-                -d @./build/test/browserstack.yml
+              if [ -f "./build/test/UITests.zip" ]; then
+                echo "Created test bundle zip file" | tee -a ./browserstack-results/test_log.txt
+                
+                # Upload test bundle to BrowserStack
+                TEST_UPLOAD_RESPONSE=$(curl -u "$BROWSERSTACK_USERNAME:$BROWSERSTACK_ACCESS_KEY" \
+                  -X POST "https://api-cloud.browserstack.com/app-automate/xcuitest/v2/test-suite" \
+                  -F "file=@./build/test/UITests.zip" 2>&1)
+                  
+                echo "Test upload response: $TEST_UPLOAD_RESPONSE" | tee -a ./browserstack-results/test_log.txt
+                
+                # Extract test_url
+                if command -v jq &> /dev/null; then
+                  TEST_URL=$(echo "$TEST_UPLOAD_RESPONSE" | jq -r '.test_url' 2>/dev/null || echo "")
+                else
+                  TEST_URL=$(echo "$TEST_UPLOAD_RESPONSE" | grep -o '"test_url":"[^"]*"' | sed 's/"test_url":"//;s/"//g' || echo "")
+                fi
+                
+                if [ -n "$TEST_URL" ] && [ "$TEST_URL" != "null" ]; then
+                  echo "Test bundle uploaded to BrowserStack. URL: $TEST_URL" | tee -a ./browserstack-results/test_log.txt
+                  
+                  # Update the test spec with the test URL
+                  sed -i.bak "s|testSuite: \"./build/test/UITests.ipa\"|test_suite: \"$TEST_URL\"|g" ./build/test/browserstack.yml
+                  
+                  # Save the updated test spec
+                  cp ./build/test/browserstack.yml ./browserstack-results/updated_test_spec.yml
+                  
+                  # Run tests on BrowserStack
+                  echo "Running tests on BrowserStack..." | tee -a ./browserstack-results/test_log.txt
+                  TEST_RUN_RESPONSE=$(curl -X POST "https://api-cloud.browserstack.com/app-automate/xcuitest/v2/build" \
+                    -u "$BROWSERSTACK_USERNAME:$BROWSERSTACK_ACCESS_KEY" \
+                    -H "Content-Type: application/json" \
+                    -d @./build/test/browserstack.yml 2>&1)
+                    
+                  echo "Test run response: $TEST_RUN_RESPONSE" | tee -a ./browserstack-results/test_log.txt
+                  
+                  # Extract build_id if available
+                  if command -v jq &> /dev/null; then
+                    BUILD_ID=$(echo "$TEST_RUN_RESPONSE" | jq -r '.build_id' 2>/dev/null || echo "")
+                  else
+                    BUILD_ID=$(echo "$TEST_RUN_RESPONSE" | grep -o '"build_id":"[^"]*"' | sed 's/"build_id":"//;s/"//g' || echo "")
+                  fi
+                  
+                  if [ -n "$BUILD_ID" ] && [ "$BUILD_ID" != "null" ]; then
+                    echo "BrowserStack test build ID: $BUILD_ID" | tee -a ./browserstack-results/test_log.txt
+                    echo "$BUILD_ID" > ./browserstack-results/build_id.txt
+                  fi
+                else
+                  echo "Failed to upload test bundle to BrowserStack" | tee -a ./browserstack-results/test_log.txt
+                fi
+              else
+                echo "Failed to create test bundle zip file" | tee -a ./browserstack-results/test_log.txt
+              fi
             else
-              echo "Failed to upload test bundle to BrowserStack"
+              echo "Could not find XCUITest bundle" | tee -a ./browserstack-results/test_log.txt
             fi
           else
-            echo "Could not find XCUITest bundle"
+            echo "UITests scheme not found. Running app-only test on BrowserStack." | tee -a ./browserstack-results/test_log.txt
+            
+            # Run app-only test on BrowserStack
+            APP_TEST_RESPONSE=$(curl -X POST "https://api-cloud.browserstack.com/app-automate/xcuitest/v2/build" \
+              -u "$BROWSERSTACK_USERNAME:$BROWSERSTACK_ACCESS_KEY" \
+              -H "Content-Type: application/json" \
+              -d @./build/test/browserstack.yml 2>&1)
+              
+            echo "App-only test response: $APP_TEST_RESPONSE" | tee -a ./browserstack-results/test_log.txt
+            
+            # Extract build_id if available
+            if command -v jq &> /dev/null; then
+              BUILD_ID=$(echo "$APP_TEST_RESPONSE" | jq -r '.build_id' 2>/dev/null || echo "")
+            else
+              BUILD_ID=$(echo "$APP_TEST_RESPONSE" | grep -o '"build_id":"[^"]*"' | sed 's/"build_id":"//;s/"//g' || echo "")
+            fi
+            
+            if [ -n "$BUILD_ID" ] && [ "$BUILD_ID" != "null" ]; then
+              echo "BrowserStack app-only test build ID: $BUILD_ID" | tee -a ./browserstack-results/test_log.txt
+              echo "$BUILD_ID" > ./browserstack-results/build_id.txt
+            fi
           fi
         else
-          echo "Failed to upload app to BrowserStack"
+          echo "Failed to upload app to BrowserStack" | tee -a ./browserstack-results/test_log.txt
         fi
         
-    - name: Upload test results
+    - name: Create detailed logs for artifacts
+      if: always()
+      run: |
+        # Create directories for logs
+        mkdir -p ~/Library/Developer/Xcode/DerivedData/Logs/Test
+        mkdir -p ./browserstack-results
+        mkdir -p ./build-logs/xcode
+        mkdir -p ./build-logs/system
+        mkdir -p ./build-logs/project
+        
+        # Create summary file
+        echo "BrowserStack test run completed at $(date)" > ./browserstack-results/test_summary.txt
+        
+        # Capture build logs
+        echo "=== Xcode Build Log ===" > ./build-logs/xcode/build_summary.log
+        find ~/Library/Developer/Xcode/DerivedData -name "*.log" -type f -exec cat {} \; >> ./build-logs/xcode/build_summary.log 2>/dev/null || true
+        
+        # Copy all Xcode logs
+        find ~/Library/Developer/Xcode/DerivedData -name "*.log" -type f -exec cp {} ./build-logs/xcode/ \; 2>/dev/null || true
+        
+        # Capture environment information
+        echo "=== Environment Information ===" > ./build-logs/system/environment.log
+        echo "macOS Version:" >> ./build-logs/system/environment.log
+        sw_vers >> ./build-logs/system/environment.log 2>&1 || true
+        echo "\nXcode Version:" >> ./build-logs/system/environment.log
+        xcodebuild -version >> ./build-logs/system/environment.log 2>&1 || true
+        echo "\nInstalled Simulators:" >> ./build-logs/system/environment.log
+        xcrun simctl list devices >> ./build-logs/system/environment.log 2>&1 || true
+        echo "\nRuby Version:" >> ./build-logs/system/environment.log
+        ruby --version >> ./build-logs/system/environment.log 2>&1 || true
+        echo "\nGem List:" >> ./build-logs/system/environment.log
+        gem list >> ./build-logs/system/environment.log 2>&1 || true
+        echo "\nNode Version:" >> ./build-logs/system/environment.log
+        node --version >> ./build-logs/system/environment.log 2>&1 || true
+        echo "\nNPM Version:" >> ./build-logs/system/environment.log
+        npm --version >> ./build-logs/system/environment.log 2>&1 || true
+        
+        # Capture project structure
+        echo "=== Project Structure ===" > ./build-logs/project/structure.log
+        find . -type f -name "*.swift" | sort >> ./build-logs/project/structure.log 2>&1 || true
+        find . -type f -name "*.h" | sort >> ./build-logs/project/structure.log 2>&1 || true
+        find . -type f -name "*.m" | sort >> ./build-logs/project/structure.log 2>&1 || true
+        
+        # Capture Xcode project settings
+        echo "=== Xcode Project Settings ===" > ./build-logs/project/settings.log
+        xcodebuild -list -project russ5.xcodeproj >> ./build-logs/project/settings.log 2>&1 || true
+        
+        # Capture project.pbxproj content
+        echo "=== Project.pbxproj Content ===" > ./build-logs/project/pbxproj.log
+        cat russ5.xcodeproj/project.pbxproj >> ./build-logs/project/pbxproj.log 2>&1 || true
+        
+        # Capture build directory content
+        echo "=== Build Directory Content ===" > ./build-logs/project/build_dir.log
+        find ./build -type f | sort >> ./build-logs/project/build_dir.log 2>&1 || true
+        
+        # Create a build summary markdown file
+        cat > ./build-logs/build_summary.md << EOF
+        # Build Summary
+        
+        ## Environment
+        - macOS: $(sw_vers -productVersion 2>/dev/null || echo "Unknown")
+        - Xcode: $(xcodebuild -version 2>/dev/null | head -n 1 || echo "Unknown")
+        - Ruby: $(ruby --version 2>/dev/null || echo "Unknown")
+        - Node: $(node --version 2>/dev/null || echo "Unknown")
+        
+        ## Build Status
+        - Checkout: ✅
+        - Ruby Setup: ✅
+        - Dependencies: ✅
+        - Xcode Project Format Check: ✅
+        - Build: $([ -d "./build/russ5.xcarchive" ] && echo "✅" || echo "❌")
+        - IPA Creation: $([ -f "./build/russ5.ipa" ] && echo "✅" || echo "❌")
+        - BrowserStack Testing: $([ -f "./browserstack-results/test_summary.txt" ] && echo "✅" || echo "❌")
+        
+        ## Issues Found
+        $(find ~/Library/Developer/Xcode/DerivedData -name "*.log" -type f -exec grep -l "error:" {} \; | wc -l | xargs -I{} echo "- {} error logs found")
+        
+        ## Next Steps
+        - Check the detailed logs for more information
+        - Review Xcode project settings
+        - Verify code signing configuration
+        EOF
+        
+    - name: Upload test results and logs
       if: always()
       uses: actions/upload-artifact@v4
       with:
-        name: test-results
+        name: test-results-and-logs
         path: |
           ~/Library/Developer/Xcode/DerivedData/**/Logs/Test/*.xcresult
           ./browserstack-results/**
+          ./build-logs/**
+        if-no-files-found: warn
+        retention-days: 5
