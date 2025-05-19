@@ -19,7 +19,7 @@ platform :ios do
     UI.message("Testing SSH access to certificates repository...")
     match(
       type: "development",
-      app_identifier: ["xyz.russ.russ5"],
+      app_identifier: ["xyz.russ.russ5", "xyz.russ.russ5.Extension"],
       readonly: true,
       verbose: true
     )
