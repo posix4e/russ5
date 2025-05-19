@@ -8,7 +8,7 @@
     "validate-js": "node ./scripts/validate-js.js",
     "setup-signing": "node ./scripts/setup-signing.js",
     "build-xcode": "node -e \"const {execSync}=require('child_process');try{console.log('Building main app...');execSync('xcodebuild -project russ5.xcodeproj -scheme \\'russ5\\' -configuration Debug -allowProvisioningUpdates clean build | tee ./logs/build.log',{stdio:'inherit'});}catch(e){console.log('❌ Main app build failed, trying extension only...');execSync('xcodebuild -project russ5.xcodeproj -scheme \\'russ5 Extension\\' -configuration Debug -allowProvisioningUpdates clean build | tee ./logs/extension_build.log',{stdio:'inherit'});}\"",
-    "build-fastlane": "node -e \"const {execSync}=require('child_process');try{if(process.env.MATCH_PASSWORD){console.log('Building with fastlane match...');execSync('npm run lane:build_dev',{stdio:'inherit'});}else{console.log('Building with fastlane manual signing...');execSync('npm run lane:build_manual',{stdio:'inherit'});}}catch(e){console.error('❌ Fastlane build failed:',e.message);process.exit(1);}\"",
+    "build-fastlane": "node -e \"const {execSync}=require('child_process');try{if(process.env.MATCH_PASSWORD && process.env.MATCH_GIT_URL){console.log('Building with fastlane match...');execSync('npm run lane:build_dev',{stdio:'inherit'});}else{console.log('Building with fastlane manual signing...');execSync('npm run lane:build_manual',{stdio:'inherit'});}}catch(e){console.error('❌ Fastlane build failed:',e.message);process.exit(1);}\"",
     "build": "npm run build-xcode",
     "verify-build": "node ./scripts/verify-extension.js",
     "create-summary": "node ./scripts/create-summary.js",
@@ -20,7 +20,7 @@
     
     "fastlane": "fastlane",
     
-    "match:development": "fastlane match development --app_identifier xyz.russ.russ5,xyz.russ.russ5.Extension",
+    "match:development": "fastlane match development --app_identifier xyz.russ.russ5,xyz.russ.russ5.Extension --readonly",
     "match:appstore": "fastlane match appstore --app_identifier xyz.russ.russ5,xyz.russ.russ5.Extension",
     "match:adhoc": "fastlane match adhoc --app_identifier xyz.russ.russ5,xyz.russ.russ5.Extension",
     "match:nuke:development": "fastlane match nuke development",
@@ -38,7 +38,9 @@
     "load-env": "node -e \"const fs=require('fs');const path=require('path');const envPath=path.resolve(process.cwd(),'.env');if(fs.existsSync(envPath)){console.log('Loading environment variables from .env file...');const envContent=fs.readFileSync(envPath,'utf8');const envVars=envContent.split('\\n').filter(line=>line.trim()&&!line.startsWith('#')).map(line=>line.split('=',2)).reduce((acc,[key,value])=>{if(key&&value){acc[key.trim()]=value.trim();}return acc;},{});Object.entries(envVars).forEach(([key,value])=>{process.env[key]=value;console.log(`Set ${key}=${value.substring(0,3)}${'*'.repeat(Math.max(0,value.length-3))}`);})}else{console.log('.env file not found, using existing environment variables.');}\"",
     
     "match-sync": "npm run load-env && npm run match:development",
-    "match-test": "npm run load-env && node -e \"const {execSync}=require('child_process');console.log('Testing with:\\nTEAM_ID: ' + process.env.TEAM_ID + '\\nFASTLANE_APPLE_ID: ' + process.env.FASTLANE_APPLE_ID + '\\nMATCH_GIT_URL: ' + process.env.MATCH_GIT_URL);try{console.log('\\nRunning match development...');execSync('npm run match:development',{stdio:'inherit'});console.log('\\nRunning build_dev lane...');execSync('npm run lane:build_dev',{stdio:'inherit'});}catch(e){console.log('\\nFirst approach failed, trying alternative approach...');try{execSync('npm run lane:build_dev_alt',{stdio:'inherit'});}catch(e2){console.error('\\n❌ Both approaches failed. Error:',e2.message);process.exit(1);}}console.log('\\n✅ Test completed!');\"}",
+    "convert-git-url": "npm run load-env && node ./scripts/convert-git-url.js",
+    "test-ssh-key": "npm run load-env && npm run convert-git-url && node ./scripts/test-ssh-key.js",
+    "match-test": "npm run load-env && npm run test-ssh-key && node -e \"const {execSync}=require('child_process');console.log('Testing with:\\nTEAM_ID: ' + process.env.TEAM_ID + '\\nFASTLANE_APPLE_ID: ' + process.env.FASTLANE_APPLE_ID + '\\nMATCH_GIT_URL: ' + process.env.MATCH_GIT_URL);try{console.log('\\nRunning match development...');execSync('npm run match:development',{stdio:'inherit'});console.log('\\nRunning build_dev lane...');execSync('npm run lane:build_dev',{stdio:'inherit'});}catch(e){console.log('\\nFirst approach failed, trying alternative approach...');try{execSync('npm run lane:build_dev_alt',{stdio:'inherit'});}catch(e2){console.error('\\n❌ Both approaches failed. Error:',e2.message);process.exit(1);}}console.log('\\n✅ Test completed!');\"}",
     
     "browserstack-upload": "npm run load-env && npm run lane:browserstack",
     "browserstack-test": "npm run load-env && npm run lane:browserstack_test",

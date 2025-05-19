@@ -1,8 +1,13 @@
 # The URL of your private certificates repository
 # This can be overridden by setting the MATCH_GIT_URL environment variable
+# Ensure the URL is in SSH format (git@github.com:username/repo.git)
 git_url(ENV["MATCH_GIT_URL"])
 
 storage_mode("git")
+
+# Use SSH for git authentication
+git_basic_authorization(nil) # Disable basic auth
+git_ssh_command("ssh -i ~/.ssh/id_ed25519 -o IdentitiesOnly=yes")
 
 # The default type, can be: appstore, adhoc, enterprise or development
 type("development") 

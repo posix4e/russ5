@@ -44,6 +44,18 @@ jobs:
         npm run create-dirs
         npm run print-env
 
+    - name: Convert Git URL to SSH format
+      id: convert_url
+      run: |
+        # Run the conversion script and capture the output
+        RESULT=$(npm run convert-git-url)
+        # Extract the MATCH_GIT_URL from the output
+        SSH_URL=$(echo "$RESULT" | grep "^MATCH_GIT_URL=" | cut -d= -f2)
+        # Save to GitHub environment
+        echo "MATCH_GIT_URL=$SSH_URL" >> $GITHUB_ENV
+        echo "git_url=$SSH_URL" >> $GITHUB_OUTPUT
+      env:
+        MATCH_GIT_URL: ${{ secrets.MATCH_GIT_URL }}
     - name: Setup code signing
       env:
         # For manual signing (Option 1)
@@ -54,12 +66,15 @@ jobs:
         KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD || 'temporary_password' }}
         # For fastlane match (Option 3)
         MATCH_PASSWORD: ${{ secrets.MATCH_PASSWORD }}
-        MATCH_GIT_BASIC_AUTHORIZATION: ${{ secrets.MATCH_GIT_BASIC_AUTHORIZATION }}
-        MATCH_GIT_URL: ${{ secrets.MATCH_GIT_URL }}
+        MATCH_GIT_URL: ${{ env.MATCH_GIT_URL }}
         MATCH_KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD || 'temporary_password' }}
         SSH_KEY: ${{ secrets.SSH_KEY }}
       run: |
+        # Setup SSH key
         echo $SSH_KEY | base64 -d > ~/.ssh/id_ed25519 && chmod 700 ~/.ssh/id_ed25519
+        # Run test-ssh-key script to verify SSH access
+        npm run test-ssh-key
+        # Run match development
         npm run match:development
 
     - name: Build with Fastlane or xcodebuild
@@ -70,6 +85,7 @@ jobs:
         PROVISIONING_PROFILE_SPECIFIER: ${{ secrets.PROVISIONING_PROFILE_SPECIFIER }}
         EXTENSION_PROVISIONING_PROFILE_SPECIFIER: ${{ secrets.EXTENSION_PROVISIONING_PROFILE_SPECIFIER }}
         MATCH_PASSWORD: ${{ secrets.MATCH_PASSWORD }}
+        MATCH_GIT_URL: ${{ env.MATCH_GIT_URL }}
       run: |
         # Validate JavaScript
         npm run validate-js
