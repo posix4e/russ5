@@ -188,13 +188,19 @@ jobs:
         MATCH_PASSWORD: ${{ secrets.MATCH_PASSWORD }}
         BROWSERSTACK_USERNAME: ${{ secrets.BROWSERSTACK_USERNAME }}
         BROWSERSTACK_ACCESS_KEY: ${{ secrets.BROWSERSTACK_ACCESS_KEY }}
+        BROWSERSTACK_TEST_SUITE_ID: ${{ secrets.BROWSERSTACK_TEST_SUITE_ID }}
       run: |
         # Validate JavaScript
         npm run validate-js
         
         # Only run if BrowserStack credentials are available
         if [ -n "$BROWSERSTACK_USERNAME" ] && [ -n "$BROWSERSTACK_ACCESS_KEY" ]; then
-          npm run browserstack-build-and-test
+          if [ -n "$BROWSERSTACK_TEST_SUITE_ID" ]; then
+            npm run browserstack-build-and-test
+          else
+            echo "::warning::BrowserStack test suite ID not found. Only building and uploading app."
+            npm run browserstack
+          fi
         else
           echo "::warning::BrowserStack credentials not found. Skipping BrowserStack tests."
         fi

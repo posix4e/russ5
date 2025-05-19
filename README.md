@@ -193,6 +193,9 @@ This project includes Fastlane lanes for building and testing the app on Browser
    # Optional: If you already have an app uploaded to BrowserStack, you can use its ID
    # to skip the build and upload steps
    export BROWSERSTACK_APP_ID="bs://your_app_id"
+   
+   # Optional: Your test suite ID on BrowserStack (required for running tests)
+   export BROWSERSTACK_TEST_SUITE_ID="bs://your_test_suite_id"
    ```
 
 2. **For GitHub Actions**, add these secrets:
