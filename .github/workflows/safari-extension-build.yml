@@ -8,81 +8,10 @@ on:
   workflow_dispatch:
 
 jobs:
-  verify-ssh:
-    name: Verify SSH Access to Certificates
-    runs-on: macos-latest
-    timeout-minutes: 5 # Short timeout to fail fast
-
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-
-    - name: Setup Ruby and Node.js
-      uses: ruby/setup-ruby@v1
-      with:
-        ruby-version: '3.2'
-        bundler-cache: true
-    
-    - name: Setup Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: '18'
-        cache: 'npm'
-
-    - name: Install dependencies
-      run: |
-        gem install fastlane
-        npm install
-
-    - name: Setup SSH key
-      env:
-        SSH_KEY: ${{ secrets.SSH_KEY }}
-        MATCH_GIT_URL: ${{ secrets.MATCH_GIT_URL }}
-      run: |
-        # Setup SSH directory and key with proper permissions
-        mkdir -p ~/.ssh
-        chmod 700 ~/.ssh
-        echo "$SSH_KEY" | base64 -d > ~/.ssh/id_ed25519
-        chmod 600 ~/.ssh/id_ed25519
-        
-        # Add GitHub to known hosts
-        ssh-keyscan github.com >> ~/.ssh/known_hosts
-        chmod 644 ~/.ssh/known_hosts
-        
-        # Set GIT_SSH_COMMAND environment variable
-        export GIT_SSH_COMMAND="ssh -i ~/.ssh/id_ed25519 -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new -v"
-        echo "GIT_SSH_COMMAND=$GIT_SSH_COMMAND" >> $GITHUB_ENV
-        
-        # Convert HTTPS URL to SSH format if needed
-        if [[ "$MATCH_GIT_URL" == https://* ]]; then
-          REPO_PATH=$(echo "$MATCH_GIT_URL" | sed -E 's|https://[^@]*@?github.com/||' | sed -E 's|\.git$||')
-          SSH_URL="git@github.com:${REPO_PATH}.git"
-          echo "MATCH_GIT_URL=$SSH_URL" >> $GITHUB_ENV
-          echo "Converted to SSH format: ${SSH_URL}"
-        else
-          echo "MATCH_GIT_URL=$MATCH_GIT_URL" >> $GITHUB_ENV
-          echo "URL already in SSH format"
-        fi
-        
-        # Test SSH connection to GitHub
-        ssh -T git@github.com -o StrictHostKeyChecking=accept-new -v || true
-
-    - name: Verify certificates repository access
-      env:
-        MATCH_PASSWORD: ${{ secrets.MATCH_PASSWORD }}
-        TEAM_ID: ${{ secrets.TEAM_ID }}
-      run: |
-        # Run fastlane to verify SSH access
-        bundle exec fastlane verify_ssh
-        
-        # Test direct git access
-        git ls-remote $MATCH_GIT_URL
-
   build:
     name: Build Safari Extension
     runs-on: macos-latest
     timeout-minutes: 10
-    needs: verify-ssh # Only run if SSH verification succeeds
 
     steps:
     - name: Checkout code
@@ -128,15 +57,7 @@ jobs:
         # Set GIT_SSH_COMMAND environment variable
         export GIT_SSH_COMMAND="ssh -i ~/.ssh/id_ed25519 -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new"
         echo "GIT_SSH_COMMAND=$GIT_SSH_COMMAND" >> $GITHUB_ENV
-        
-        # Convert HTTPS URL to SSH format if needed
-        if [[ "$MATCH_GIT_URL" == https://* ]]; then
-          REPO_PATH=$(echo "$MATCH_GIT_URL" | sed -E 's|https://[^@]*@?github.com/||' | sed -E 's|\.git$||')
-          SSH_URL="git@github.com:${REPO_PATH}.git"
-          echo "MATCH_GIT_URL=$SSH_URL" >> $GITHUB_ENV
-        else
-          echo "MATCH_GIT_URL=$MATCH_GIT_URL" >> $GITHUB_ENV
-        fi
+        echo "MATCH_GIT_URL=$MATCH_GIT_URL" >> $GITHUB_ENV
 
     - name: Build with simplified fastlane
       env:
