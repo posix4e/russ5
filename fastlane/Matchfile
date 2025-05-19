@@ -15,9 +15,6 @@ git_private_key("~/.ssh/id_ed25519")
 # Always enable verbose mode for better debugging
 verbose(true)
 
-# Set a timeout to prevent hanging
-timeout(300)
-
 # The default type is development
 type("development")
 

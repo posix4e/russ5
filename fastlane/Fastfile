@@ -4,26 +4,26 @@ platform :ios do
   desc "Setup provisioning profiles for development"
   lane :setup_profiles do
     # Use match to sync development certificates and provisioning profiles
-    # with verbose logging and a short timeout
+    # with verbose logging
     match(
       type: "development",
       app_identifier: ["xyz.russ.russ5", "xyz.russ.russ5.Extension"],
       readonly: true, # Always read-only for safety
-      verbose: true,  # Enable verbose logging
-      timeout: 300    # 5-minute timeout
+      verbose: true   # Enable verbose logging
     )
   end
   
   desc "Verify SSH access to certificates repository"
   lane :verify_ssh do
     # Just run match in readonly mode with verbose logging
+    UI.message("Testing SSH access to certificates repository...")
     match(
       type: "development",
       app_identifier: ["xyz.russ.russ5"],
       readonly: true,
-      verbose: true,
-      timeout: 60     # 1-minute timeout
+      verbose: true
     )
+    UI.success("Successfully accessed certificates repository via SSH!")
   end
   
   desc "Simplified build for development"
