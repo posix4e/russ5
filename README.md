@@ -255,6 +255,9 @@ npm run browserstack-test
 
 # Advanced BrowserStack operations:
 
+# Create a test suite zip file from your XCUITest files
+npm run browserstack-create-testsuite
+
 # Upload a test suite to BrowserStack
 npm run browserstack-upload-testsuite
 
@@ -264,6 +267,33 @@ npm run browserstack-run-tests
 # Check test results from BrowserStack
 npm run browserstack-check-results
 ```
+
+### Creating and Uploading Test Suites
+
+To run tests on BrowserStack, you need to create and upload a test suite:
+
+1. **Create a test suite**:
+   ```bash
+   # Create a test suite zip file from your XCUITest files
+   npm run browserstack-create-testsuite
+   
+   # Optionally specify a custom test directory
+   npm run browserstack-create-testsuite /path/to/your/tests
+   ```
+
+2. **Upload the test suite to BrowserStack**:
+   ```bash
+   # Upload the test suite to BrowserStack
+   npm run browserstack-upload-testsuite
+   ```
+   
+   This will return a test suite ID that you can use for running tests.
+
+3. **Set the test suite ID in your environment**:
+   ```bash
+   # Add this to your .env file
+   BROWSERSTACK_TEST_SUITE_ID="bs://your_test_suite_id"
+   ```
 
 ### Customizing BrowserStack Tests
 
