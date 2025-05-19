@@ -30,12 +30,20 @@ const fs = require('fs');
 const path = require('path');
 const { execSync } = require('child_process');
 
+// Process command line arguments
+const args = process.argv.slice(2);
+const skipRunner = args.includes('--skip-runner');
+
+// Remove flags from args
+const nonFlagArgs = args.filter(arg => !arg.startsWith('--'));
+
 // Configuration
 const outputDir = path.resolve(process.cwd(), './dist');
 const outputFile = path.resolve(outputDir, 'test-suite.zip');
-const testDir = process.argv[2] || findTestDirectory();
-const runnerDir = process.argv[3] || findRunnerDirectory();
-const skipRunner = process.argv.includes('--skip-runner');
+const testDir = nonFlagArgs[0] || findTestDirectory();
+const runnerDir = skipRunner ? null : (nonFlagArgs[1] || findRunnerDirectory());
+
+console.log(`Skip runner: ${skipRunner ? 'Yes' : 'No'}`);
 
 // Ensure output directory exists
 if (!fs.existsSync(outputDir)) {
@@ -185,13 +193,31 @@ try {
   }
   
   // Create the zip file
-  process.chdir(outputDir);
-  execSync(`zip -r test-suite.zip Payload -C "${tempDir}"`);
-  
-  // Clean up the temporary directory
-  execSync(`rm -rf "${tempDir}"`);
-  
-  console.log(`✅ Test suite created successfully at ${outputFile}`);
+  try {
+    // Change to the temp directory and zip from there
+    process.chdir(tempDir);
+    execSync('zip -r ../test-suite.zip Payload');
+    console.log(`✅ Test suite created successfully at ${outputFile}`);
+  } catch (error) {
+    console.error(`Error creating zip file: ${error.message}`);
+    
+    // Try alternative zip method if the first one fails
+    try {
+      console.log('Trying alternative zip method...');
+      process.chdir(outputDir);
+      execSync(`rm -f test-suite.zip`);
+      execSync(`cd "${tempDir}" && zip -r "${outputFile}" Payload`);
+      console.log(`✅ Test suite created successfully at ${outputFile}`);
+    } catch (zipError) {
+      throw new Error(`Failed to create zip file: ${zipError.message}`);
+    }
+  } finally {
+    // Return to the original directory
+    process.chdir(process.cwd());
+    
+    // Clean up the temporary directory
+    execSync(`rm -rf "${tempDir}"`);
+  }
   console.log('\nTo upload this test suite to BrowserStack, run:');
   console.log('npm run browserstack-upload-testsuite');
 } catch (error) {

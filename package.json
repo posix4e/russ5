@@ -46,6 +46,7 @@
     "ci-browserstack": "npm run load-env && npm run create-dirs && npm run print-env && npm run setup-signing && npm run validate-js && npm run browserstack-build-and-test && npm run create-summary",
     
     "browserstack-create-testsuite": "node ./scripts/create-browserstack-test-suite.js",
+    "browserstack-create-testsuite-no-runner": "node ./scripts/create-browserstack-test-suite.js --skip-runner",
     "browserstack-upload-testsuite": "npm run load-env && node ./scripts/browserstack-upload-testsuite.js",
     "browserstack-run-tests": "npm run load-env && node ./scripts/browserstack-run-tests.js",
     "browserstack-check-results": "npm run load-env && node ./scripts/browserstack-check-results.js"

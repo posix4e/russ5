@@ -258,6 +258,9 @@ npm run browserstack-test
 # Create a test suite zip file from your XCUITest files
 npm run browserstack-create-testsuite
 
+# Create a test suite without including a runner (if you're having issues)
+npm run browserstack-create-testsuite-no-runner
+
 # Upload a test suite to BrowserStack
 npm run browserstack-upload-testsuite
 
@@ -284,7 +287,7 @@ To run tests on BrowserStack, you need to create and upload a test suite:
    npm run browserstack-create-testsuite /path/to/your/tests /path/to/your/runner.xctest
    
    # Create a test suite without including a runner (if you're having issues)
-   npm run browserstack-create-testsuite --skip-runner
+   npm run browserstack-create-testsuite-no-runner
    ```
    
    The script will:
