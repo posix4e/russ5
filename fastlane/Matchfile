@@ -7,7 +7,10 @@ storage_mode("git")
 
 # Use SSH for git authentication
 git_basic_authorization(nil) # Disable basic auth
-git_ssh_command("ssh -i ~/.ssh/id_ed25519 -o IdentitiesOnly=yes")
+git_ssh_command("ssh -i ~/.ssh/id_ed25519 -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new")
+
+# For debugging
+verbose(true)
 
 # The default type, can be: appstore, adhoc, enterprise or development
 type("development") 

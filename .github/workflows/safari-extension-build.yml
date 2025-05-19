@@ -47,10 +47,20 @@ jobs:
     - name: Convert Git URL to SSH format
       id: convert_url
       run: |
-        # Run the conversion script and capture the output
-        RESULT=$(npm run convert-git-url)
-        # Extract the MATCH_GIT_URL from the output
-        SSH_URL=$(echo "$RESULT" | grep "^MATCH_GIT_URL=" | cut -d= -f2)
+        # Print original URL (masked for security)
+        echo "Original URL format: ${MATCH_GIT_URL/https:\/\/*@/https://***@}"
+        
+        # Convert HTTPS URL to SSH format
+        if [[ "$MATCH_GIT_URL" == https://* ]]; then
+          # Extract username and repo from HTTPS URL
+          REPO_PATH=$(echo "$MATCH_GIT_URL" | sed -E 's|https://[^@]*@?github.com/||' | sed -E 's|\.git$||')
+          SSH_URL="git@github.com:${REPO_PATH}.git"
+          echo "Converted to SSH format: ${SSH_URL}"
+        else
+          SSH_URL="$MATCH_GIT_URL"
+          echo "URL already in SSH format: ${SSH_URL/git@/git@***@}"
+        fi
+        
         # Save to GitHub environment
         echo "MATCH_GIT_URL=$SSH_URL" >> $GITHUB_ENV
         echo "git_url=$SSH_URL" >> $GITHUB_OUTPUT
@@ -70,11 +80,26 @@ jobs:
         MATCH_KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD || 'temporary_password' }}
         SSH_KEY: ${{ secrets.SSH_KEY }}
       run: |
-        # Setup SSH key
-        echo $SSH_KEY | base64 -d > ~/.ssh/id_ed25519 && chmod 700 ~/.ssh/id_ed25519
-        # Run test-ssh-key script to verify SSH access
-        npm run test-ssh-key
-        # Run match development
+        # Setup SSH directory and key with proper permissions
+        mkdir -p ~/.ssh
+        chmod 700 ~/.ssh
+        echo "$SSH_KEY" | base64 -d > ~/.ssh/id_ed25519
+        chmod 600 ~/.ssh/id_ed25519
+        
+        # Add GitHub to known hosts
+        ssh-keyscan github.com >> ~/.ssh/known_hosts
+        chmod 644 ~/.ssh/known_hosts
+        
+        # Configure git to use SSH key
+        git config --global core.sshCommand "ssh -i ~/.ssh/id_ed25519 -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new"
+        
+        # Debug SSH setup
+        npm run debug-ssh
+        
+        # Test SSH connection
+        ssh -T git@github.com -o StrictHostKeyChecking=accept-new || true
+        
+        # Run match development with readonly flag for safety
         npm run match:development
 
     - name: Build with Fastlane or xcodebuild
