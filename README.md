@@ -173,6 +173,79 @@ git commit --no-verify
 
 But this is not recommended as it may lead to broken builds in GitHub Actions.
 
+## BrowserStack Integration
+
+This project includes Fastlane lanes for building and testing the app on BrowserStack. BrowserStack allows you to test your app on real iOS devices in the cloud without needing physical devices.
+
+### Prerequisites
+
+1. A BrowserStack account with access to App Automate
+2. BrowserStack username and access key
+
+### Setting Up BrowserStack
+
+1. **Set up environment variables**:
+   ```bash
+   # Add these to your .env file or export them
+   export BROWSERSTACK_USERNAME="your_browserstack_username"
+   export BROWSERSTACK_ACCESS_KEY="your_browserstack_access_key"
+   ```
+
+2. **For GitHub Actions**, add these secrets:
+   - `BROWSERSTACK_USERNAME`: Your BrowserStack username
+   - `BROWSERSTACK_ACCESS_KEY`: Your BrowserStack access key
+
+### Available BrowserStack Lanes
+
+The following Fastlane lanes are available for BrowserStack integration:
+
+#### 1. Upload App to BrowserStack
+
+```bash
+# Build and upload the app to BrowserStack
+bundle exec fastlane browserstack
+```
+
+This lane:
+- Builds the app for development
+- Uploads the IPA file to BrowserStack App Automate
+
+#### 2. Run Tests on BrowserStack
+
+```bash
+# Run tests on BrowserStack
+bundle exec fastlane browserstack_test
+```
+
+This lane:
+- Builds the app for testing
+- Uploads the IPA file to BrowserStack
+- Runs XCUITests on BrowserStack using an iPhone 14 Pro with iOS 16
+
+#### 3. Build and Test on BrowserStack
+
+```bash
+# Build the app and run tests on BrowserStack
+bundle exec fastlane browserstack_build_and_test
+```
+
+This lane:
+- Combines the `browserstack` and `browserstack_test` lanes
+- Builds the app, uploads it to BrowserStack, and runs tests
+
+### Customizing BrowserStack Tests
+
+You can customize the BrowserStack test configuration by modifying the `browserstack_test` lane in the Fastfile. Available options include:
+
+- `device`: The device to test on (e.g., "iPhone 14 Pro", "iPhone 13", etc.)
+- `os_version`: The iOS version to test on (e.g., "16", "15", etc.)
+- `project_name`: The name of your project in BrowserStack
+- `build_name`: The name of your build in BrowserStack
+- `test_framework`: The test framework to use (e.g., "xcui", "espresso", etc.)
+- `local`: Whether to enable local testing (for testing private networks)
+
+For more options, see the [BrowserStack App Automate documentation](https://www.browserstack.com/app-automate/xcuitest/get-started).
+
 ## Troubleshooting
 
 ### Provisioning Profile Errors

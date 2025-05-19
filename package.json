@@ -31,11 +31,19 @@
     "lane:build_dev_alt": "fastlane build_dev_alt",
     "lane:build_manual": "fastlane build_manual",
     "lane:setup_profiles": "fastlane setup_profiles",
+    "lane:browserstack": "fastlane browserstack",
+    "lane:browserstack_test": "fastlane browserstack_test",
+    "lane:browserstack_build_and_test": "fastlane browserstack_build_and_test",
     
     "load-env": "node -e \"const fs=require('fs');const path=require('path');const envPath=path.resolve(process.cwd(),'.env');if(fs.existsSync(envPath)){console.log('Loading environment variables from .env file...');const envContent=fs.readFileSync(envPath,'utf8');const envVars=envContent.split('\\n').filter(line=>line.trim()&&!line.startsWith('#')).map(line=>line.split('=',2)).reduce((acc,[key,value])=>{if(key&&value){acc[key.trim()]=value.trim();}return acc;},{});Object.entries(envVars).forEach(([key,value])=>{process.env[key]=value;console.log(`Set ${key}=${value.substring(0,3)}${'*'.repeat(Math.max(0,value.length-3))}`);})}else{console.log('.env file not found, using existing environment variables.');}\"",
     
     "match-sync": "npm run load-env && npm run match:development",
-    "match-test": "npm run load-env && node -e \"const {execSync}=require('child_process');console.log('Testing with:\\nTEAM_ID: ' + process.env.TEAM_ID + '\\nFASTLANE_APPLE_ID: ' + process.env.FASTLANE_APPLE_ID + '\\nMATCH_GIT_URL: ' + process.env.MATCH_GIT_URL);try{console.log('\\nRunning match development...');execSync('npm run match:development',{stdio:'inherit'});console.log('\\nRunning build_dev lane...');execSync('npm run lane:build_dev',{stdio:'inherit'});}catch(e){console.log('\\nFirst approach failed, trying alternative approach...');try{execSync('npm run lane:build_dev_alt',{stdio:'inherit'});}catch(e2){console.error('\\n❌ Both approaches failed. Error:',e2.message);process.exit(1);}}console.log('\\n✅ Test completed!');\""
+    "match-test": "npm run load-env && node -e \"const {execSync}=require('child_process');console.log('Testing with:\\nTEAM_ID: ' + process.env.TEAM_ID + '\\nFASTLANE_APPLE_ID: ' + process.env.FASTLANE_APPLE_ID + '\\nMATCH_GIT_URL: ' + process.env.MATCH_GIT_URL);try{console.log('\\nRunning match development...');execSync('npm run match:development',{stdio:'inherit'});console.log('\\nRunning build_dev lane...');execSync('npm run lane:build_dev',{stdio:'inherit'});}catch(e){console.log('\\nFirst approach failed, trying alternative approach...');try{execSync('npm run lane:build_dev_alt',{stdio:'inherit'});}catch(e2){console.error('\\n❌ Both approaches failed. Error:',e2.message);process.exit(1);}}console.log('\\n✅ Test completed!');\"}",
+    
+    "browserstack-upload": "npm run load-env && npm run lane:browserstack",
+    "browserstack-test": "npm run load-env && npm run lane:browserstack_test",
+    "browserstack-build-and-test": "npm run load-env && npm run lane:browserstack_build_and_test",
+    "ci-browserstack": "npm run load-env && npm run create-dirs && npm run print-env && npm run setup-signing && npm run validate-js && npm run browserstack-build-and-test && npm run create-summary"
   },
   "repository": {
     "type": "git",

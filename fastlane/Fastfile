@@ -26,6 +26,45 @@ platform :ios do
     )
   end
   
+  desc "Run tests on BrowserStack"
+  lane :browserstack_test do
+    # Build the app for testing
+    build_ios_app(
+      scheme: "russ5",
+      export_method: "development",
+      build_for_testing: true
+    )
+    
+    # Upload the app to BrowserStack
+    app_url = upload_to_browserstack_app_automate(
+      browserstack_username: ENV["BROWSERSTACK_USERNAME"],
+      browserstack_access_key: ENV["BROWSERSTACK_ACCESS_KEY"],
+      file_path: lane_context[SharedValues::IPA_OUTPUT_PATH]
+    )
+    
+    # Run tests on BrowserStack
+    run_tests_on_browserstack(
+      browserstack_username: ENV["BROWSERSTACK_USERNAME"],
+      browserstack_access_key: ENV["BROWSERSTACK_ACCESS_KEY"],
+      app_url: app_url,
+      device: "iPhone 14 Pro",
+      os_version: "16",
+      project_name: "russ5",
+      build_name: "russ5-#{Time.now.strftime('%Y%m%d%H%M%S')}",
+      test_framework: "xcui",
+      local: false
+    )
+  end
+  
+  desc "Build and test on BrowserStack"
+  lane :browserstack_build_and_test do
+    # First build the app
+    browserstack
+    
+    # Then run the tests
+    browserstack_test
+  end
+  
   desc "Setup provisioning profiles for development"
   lane :setup_profiles do
     # Use match to sync development certificates and provisioning profiles
