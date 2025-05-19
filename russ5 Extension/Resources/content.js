@@ -41,22 +41,22 @@ if (window.location.href && window.location.href !== "about:blank") { // Avoid l
 
    let articleText = null;
     try {
-        // Clone the document because Readability modifies it
-        const documentClone = document.cloneNode(true);
-        // Check if Readability is available
-        if (typeof Readability === 'undefined') {
-            console.warn("Readability.js is not available. Article text extraction skipped.");
-            throw new Error("Readability is not defined");
-        }
-        const reader = new Readability(documentClone);
-        const article = reader.parse();
-        if (article && article.textContent) {
-            articleText = article.textContent.trim();
-            // Truncate to a reasonable length (e.g., 2000 characters)
-            const maxLength = 2000;
-            if (articleText.length > maxLength) {
-                articleText = articleText.substring(0, maxLength) + "...";
+        // Check if Readability is available in the global scope
+        if (typeof window.Readability !== 'undefined') {
+            // Clone the document because Readability modifies it
+            const documentClone = document.cloneNode(true);
+            const reader = new window.Readability(documentClone);
+            const article = reader.parse();
+            if (article && article.textContent) {
+                articleText = article.textContent.trim();
+                // Truncate to a reasonable length (e.g., 2000 characters)
+                const maxLength = 2000;
+                if (articleText.length > maxLength) {
+                    articleText = articleText.substring(0, maxLength) + "...";
+                }
             }
+        } else {
+            console.warn("Readability.js is not available. Article text extraction skipped.");
         }
     } catch (e) {
         console.warn("Readability.js could not parse the article:", e);
