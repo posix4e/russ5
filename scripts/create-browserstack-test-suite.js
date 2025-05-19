@@ -5,13 +5,25 @@
  * It packages your XCUITest files into a zip archive with the proper structure for BrowserStack.
  * 
  * Usage:
- *   node scripts/create-browserstack-test-suite.js [test-directory] [runner-directory]
+ *   node scripts/create-browserstack-test-suite.js [test-directory] [runner-directory] [--skip-runner]
  * 
  * Arguments:
  *   test-directory: Optional. Path to the directory containing your XCUITest files.
  *                   If not provided, it will look for tests in standard locations.
  *   runner-directory: Optional. Path to the directory containing your XCUITest runner.
  *                     If not provided, it will look in standard locations.
+ *   --skip-runner: Optional flag. If provided, the script will not attempt to include a runner
+ *                  in the test suite, which can be useful if you're having issues with the runner.
+ * 
+ * Examples:
+ *   # Create a test suite with auto-detected test and runner directories
+ *   node scripts/create-browserstack-test-suite.js
+ * 
+ *   # Create a test suite with a specific test directory
+ *   node scripts/create-browserstack-test-suite.js /path/to/tests
+ * 
+ *   # Create a test suite without including a runner
+ *   node scripts/create-browserstack-test-suite.js --skip-runner
  */
 
 const fs = require('fs');
@@ -23,6 +35,7 @@ const outputDir = path.resolve(process.cwd(), './dist');
 const outputFile = path.resolve(outputDir, 'test-suite.zip');
 const testDir = process.argv[2] || findTestDirectory();
 const runnerDir = process.argv[3] || findRunnerDirectory();
+const skipRunner = process.argv.includes('--skip-runner');
 
 // Ensure output directory exists
 if (!fs.existsSync(outputDir)) {
@@ -55,15 +68,47 @@ function findTestDirectory() {
 function findRunnerDirectory() {
   // Look for the XCUITest runner in DerivedData
   try {
+    // First try to find the .xctest directory
     const findCmd = "find ~/Library/Developer/Xcode/DerivedData -path '*/Build/Products/Debug-iphonesimulator/*.xctest' -type d | head -1";
-    const runnerPath = execSync(findCmd, { encoding: 'utf8' }).trim();
+    let runnerPath = execSync(findCmd, { encoding: 'utf8' }).trim();
     
     if (runnerPath) {
-      console.log(`Found XCUITest runner at: ${runnerPath}`);
-      return runnerPath;
+      // Verify the directory exists and has content
+      if (fs.existsSync(runnerPath)) {
+        try {
+          const files = fs.readdirSync(runnerPath);
+          if (files.length > 0) {
+            console.log(`Found XCUITest runner at: ${runnerPath}`);
+            return runnerPath;
+          }
+        } catch (e) {
+          console.log(`Found runner directory but couldn't read its contents: ${e.message}`);
+        }
+      }
+      
+      // If the .xctest directory is empty or inaccessible, try the parent app directory
+      const parentAppDir = runnerPath.replace(/\/PlugIns\/.*\.xctest$/, '');
+      if (fs.existsSync(parentAppDir)) {
+        console.log(`Using parent app directory instead: ${parentAppDir}`);
+        return parentAppDir;
+      }
     }
   } catch (error) {
-    console.log('Could not find XCUITest runner in DerivedData');
+    console.log(`Could not find XCUITest runner in DerivedData: ${error.message}`);
+  }
+  
+  // Try alternative locations
+  try {
+    // Look for any .app directory in DerivedData
+    const findAppCmd = "find ~/Library/Developer/Xcode/DerivedData -path '*/Build/Products/Debug-iphonesimulator/*.app' -type d | head -1";
+    const appPath = execSync(findAppCmd, { encoding: 'utf8' }).trim();
+    
+    if (appPath && fs.existsSync(appPath)) {
+      console.log(`Found app directory at: ${appPath}`);
+      return appPath;
+    }
+  } catch (error) {
+    // Ignore errors in the fallback search
   }
   
   console.log('⚠️ Warning: XCUITest runner not found. Creating test suite without runner.');
@@ -95,11 +140,29 @@ try {
   fs.mkdirSync(testTargetDir, { recursive: true });
   execSync(`cp -R "${testDir}"/* "${testTargetDir}"/`);
   
-  // If we have a runner, copy it to the proper location
-  if (runnerDir && fs.existsSync(runnerDir)) {
+  // If we have a runner and aren't skipping it, copy it to the proper location
+  if (!skipRunner && runnerDir && fs.existsSync(runnerDir)) {
     const runnerTargetDir = path.resolve(payloadDir, 'Runner.app');
     fs.mkdirSync(runnerTargetDir, { recursive: true });
-    execSync(`cp -R "${runnerDir}"/* "${runnerTargetDir}"/`);
+    
+    try {
+      // Check if the directory has any files
+      const files = fs.readdirSync(runnerDir);
+      if (files.length > 0) {
+        execSync(`cp -R "${runnerDir}"/* "${runnerTargetDir}"/`);
+        console.log(`✅ Runner files copied successfully from ${runnerDir}`);
+      } else {
+        console.log(`⚠️ Warning: Runner directory exists but is empty: ${runnerDir}`);
+        // Create a dummy file to ensure the directory isn't empty
+        fs.writeFileSync(path.resolve(runnerTargetDir, 'runner.placeholder'), 'Placeholder file for BrowserStack');
+      }
+    } catch (error) {
+      console.log(`⚠️ Warning: Could not copy files from runner directory: ${error.message}`);
+      // Create a dummy file to ensure the directory isn't empty
+      fs.writeFileSync(path.resolve(runnerTargetDir, 'runner.placeholder'), 'Placeholder file for BrowserStack');
+    }
+  } else if (skipRunner) {
+    console.log('Skipping runner as requested with --skip-runner flag');
   }
   
   // Create a simple Info.plist if it doesn't exist
