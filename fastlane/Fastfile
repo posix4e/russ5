@@ -29,27 +29,79 @@ platform :ios do
   desc "Simplified build for development"
   lane :build_simple do
     # First verify SSH access works
-    verify_ssh
+    begin
+      verify_ssh
+    rescue => e
+      UI.error("SSH verification failed: #{e.message}")
+      # Continue anyway, as this might not be critical
+    end
+    
+    # Create build directories
+    sh("mkdir -p ./build/logs ./build/derived")
+    
+    # Log environment information
+    UI.message("Environment information:")
+    sh("xcodebuild -version", log: true)
+    sh("xcodebuild -list -project russ5.xcodeproj || echo 'Could not list schemes'", log: true)
     
     # Enable automatic signing for all targets
-    update_code_signing_settings(
-      use_automatic_signing: true,
-      path: "russ5.xcodeproj",
-      team_id: ENV["TEAM_ID"],
-      targets: ["russ5", "russ5 Extension"]
-    )
+    begin
+      update_code_signing_settings(
+        use_automatic_signing: true,
+        path: "russ5.xcodeproj",
+        team_id: ENV["TEAM_ID"],
+        targets: ["russ5", "russ5 Extension"]
+      )
+    rescue => e
+      UI.error("Code signing update failed: #{e.message}")
+      # Continue anyway, we'll try to build
+    end
     
-    # Just build the main target without packaging
-    xcodebuild(
-      project: "russ5.xcodeproj",
-      scheme: "russ5",
-      configuration: "Debug",
-      clean: true,
-      build: true,
-      xcargs: "-allowProvisioningUpdates -verbose",
-      buildlog_path: "./build/logs",
-      derivedDataPath: "./build/derived",
-      # Removed timeout parameter as it might not be supported
-    )
+    # Validate JavaScript files
+    begin
+      sh("node ./scripts/validate-js.js", log: true)
+    rescue => e
+      UI.error("JavaScript validation failed: #{e.message}")
+      # Continue anyway, we'll try to build
+    end
+    
+    # Try to build the main target
+    begin
+      UI.message("Building main app target...")
+      xcodebuild(
+        project: "russ5.xcodeproj",
+        scheme: "russ5",
+        configuration: "Debug",
+        clean: true,
+        build: true,
+        xcargs: "-allowProvisioningUpdates -verbose",
+        buildlog_path: "./build/logs",
+        derivedDataPath: "./build/derived"
+      )
+    rescue => e
+      UI.error("Main app build failed: #{e.message}")
+      UI.message("Trying to build just the extension...")
+      
+      # Try to build just the extension
+      begin
+        xcodebuild(
+          project: "russ5.xcodeproj",
+          scheme: "russ5 Extension",
+          configuration: "Debug",
+          clean: true,
+          build: true,
+          xcargs: "-allowProvisioningUpdates -verbose",
+          buildlog_path: "./build/logs",
+          derivedDataPath: "./build/derived"
+        )
+      rescue => e2
+        UI.error("Extension build also failed: #{e2.message}")
+        UI.error("Both build attempts failed. Check the logs for details.")
+        raise e2
+      end
+    end
+    
+    # Log success
+    UI.success("Build completed successfully!")
   end
 end

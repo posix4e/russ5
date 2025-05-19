@@ -102,6 +102,41 @@ function checkForUndefinedReferences(filePath, knownGlobals = []) {
     }
   });
   
+  // Special check for Readability usage
+  if (path.basename(filePath) === 'content.js') {
+    // Check for direct Readability usage without window prefix
+    const readabilityRegex = /new\s+Readability\s*\(/g;
+    const windowReadabilityRegex = /new\s+window\.Readability\s*\(/g;
+    
+    let readabilityMatch;
+    while ((readabilityMatch = readabilityRegex.exec(content)) !== null) {
+      // Check if this is not a window.Readability usage
+      const lineIndex = content.substring(0, readabilityMatch.index).split('\n').length - 1;
+      const line = lines[lineIndex];
+      
+      if (!line.includes('window.Readability') && !line.includes('typeof Readability !== "undefined"')) {
+        warnings.push({
+          line: lineIndex + 1,
+          column: readabilityMatch.index,
+          message: `Using 'new Readability()' without checking if it exists. Use 'window.Readability' with existence check instead.`
+        });
+      }
+    }
+    
+    // Check if Readability is used but no existence check is present
+    if (content.includes('Readability') && 
+        !content.includes('typeof window.Readability !== "undefined"') && 
+        !content.includes('typeof Readability !== "undefined"') &&
+        !content.includes('window.Readability !== undefined') &&
+        !content.includes('Readability !== undefined')) {
+      warnings.push({
+        line: 1,
+        column: 0,
+        message: `File uses Readability but doesn't check if it exists. Add a check like 'if (typeof window.Readability !== "undefined")'.`
+      });
+    }
+  }
+  
   return warnings;
 }
 

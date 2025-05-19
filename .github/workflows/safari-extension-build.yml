@@ -65,8 +65,15 @@ jobs:
         FASTLANE_APPLE_ID: ${{ secrets.FASTLANE_APPLE_ID }}
         MATCH_PASSWORD: ${{ secrets.MATCH_PASSWORD }}
       run: |
-        # Run simplified build
-        bundle exec fastlane build_simple
+        # Run simplified build with verbose output
+        set -x  # Enable command echo
+        npm install  # Ensure npm dependencies are installed
+        npm run validate-js  # Validate JavaScript files
+        bundle exec fastlane build_simple || {
+          echo "Fastlane build failed, showing logs:"
+          find ./build/logs -type f -exec cat {} \;
+          exit 1
+        }
 
     - name: Upload build artifacts
       if: always()
