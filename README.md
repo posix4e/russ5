@@ -279,7 +279,16 @@ To run tests on BrowserStack, you need to create and upload a test suite:
    
    # Optionally specify a custom test directory
    npm run browserstack-create-testsuite /path/to/your/tests
+   
+   # Optionally specify both test directory and runner directory
+   npm run browserstack-create-testsuite /path/to/your/tests /path/to/your/runner.xctest
    ```
+   
+   The script will:
+   - Look for your test files in standard locations if not specified
+   - Look for the XCUITest runner in Xcode's DerivedData directory
+   - Create a properly structured zip file with the required `Payload` directory
+   - Add a basic `Info.plist` file if one doesn't exist
 
 2. **Upload the test suite to BrowserStack**:
    ```bash
