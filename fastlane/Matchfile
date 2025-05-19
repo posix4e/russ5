@@ -1,34 +1,42 @@
-# The URL of your private certificates repository
-# This can be overridden by setting the MATCH_GIT_URL environment variable
-# Ensure the URL is in SSH format (git@github.com:username/repo.git)
+# Simplified Matchfile for SSH-based authentication
+
+# The URL of your private certificates repository (SSH format)
 git_url(ENV["MATCH_GIT_URL"])
 
+# Always use git storage mode
 storage_mode("git")
 
-# Use SSH for git authentication
-git_basic_authorization(nil) # Disable basic auth
+# Disable basic auth since we're using SSH
+git_basic_authorization(nil)
 
-# Use git_private_key instead of git_ssh_command
+# Use SSH private key for authentication
 git_private_key("~/.ssh/id_ed25519")
 
-# For debugging
+# Always enable verbose mode for better debugging
 verbose(true)
 
-# The default type, can be: appstore, adhoc, enterprise or development
-type("development") 
+# Set a timeout to prevent hanging
+timeout(300)
+
+# The default type is development
+type("development")
 
 # App identifiers to include in the provisioning profile
 app_identifier(["xyz.russ.russ5", "xyz.russ.russ5.Extension"])
 
 # Your Apple Developer Portal username
-# This can be overridden by setting the FASTLANE_APPLE_ID environment variable
-username(ENV["FASTLANE_APPLE_ID"]) 
+username(ENV["FASTLANE_APPLE_ID"])
 
 # Team ID from the Apple Developer Portal
-# This can be overridden by setting the TEAM_ID environment variable
 team_id(ENV["TEAM_ID"])
 
-# Set to readonly in CI environments to prevent creating new certificates
-readonly(ENV["CI"] == "true")
+# Always use readonly mode in CI to prevent accidental certificate creation
+readonly(true)
+
+# Skip confirmation prompts in CI
+skip_confirmation(true)
+
+# Skip docs generation to speed up the process
+skip_docs(true)
 
 # The docs are available on https://docs.fastlane.tools/actions/match/

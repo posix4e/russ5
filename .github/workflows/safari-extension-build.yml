@@ -1,4 +1,4 @@
-name: Safari Extension Build with Fastlane
+name: Simplified Safari Extension Build
 
 on:
   push:
@@ -8,10 +8,81 @@ on:
   workflow_dispatch:
 
 jobs:
+  verify-ssh:
+    name: Verify SSH Access to Certificates
+    runs-on: macos-latest
+    timeout-minutes: 5 # Short timeout to fail fast
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Ruby and Node.js
+      uses: ruby/setup-ruby@v1
+      with:
+        ruby-version: '3.2'
+        bundler-cache: true
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+
+    - name: Install dependencies
+      run: |
+        gem install fastlane
+        npm install
+
+    - name: Setup SSH key
+      env:
+        SSH_KEY: ${{ secrets.SSH_KEY }}
+        MATCH_GIT_URL: ${{ secrets.MATCH_GIT_URL }}
+      run: |
+        # Setup SSH directory and key with proper permissions
+        mkdir -p ~/.ssh
+        chmod 700 ~/.ssh
+        echo "$SSH_KEY" | base64 -d > ~/.ssh/id_ed25519
+        chmod 600 ~/.ssh/id_ed25519
+        
+        # Add GitHub to known hosts
+        ssh-keyscan github.com >> ~/.ssh/known_hosts
+        chmod 644 ~/.ssh/known_hosts
+        
+        # Set GIT_SSH_COMMAND environment variable
+        export GIT_SSH_COMMAND="ssh -i ~/.ssh/id_ed25519 -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new -v"
+        echo "GIT_SSH_COMMAND=$GIT_SSH_COMMAND" >> $GITHUB_ENV
+        
+        # Convert HTTPS URL to SSH format if needed
+        if [[ "$MATCH_GIT_URL" == https://* ]]; then
+          REPO_PATH=$(echo "$MATCH_GIT_URL" | sed -E 's|https://[^@]*@?github.com/||' | sed -E 's|\.git$||')
+          SSH_URL="git@github.com:${REPO_PATH}.git"
+          echo "MATCH_GIT_URL=$SSH_URL" >> $GITHUB_ENV
+          echo "Converted to SSH format: ${SSH_URL}"
+        else
+          echo "MATCH_GIT_URL=$MATCH_GIT_URL" >> $GITHUB_ENV
+          echo "URL already in SSH format"
+        fi
+        
+        # Test SSH connection to GitHub
+        ssh -T git@github.com -o StrictHostKeyChecking=accept-new -v || true
+
+    - name: Verify certificates repository access
+      env:
+        MATCH_PASSWORD: ${{ secrets.MATCH_PASSWORD }}
+        TEAM_ID: ${{ secrets.TEAM_ID }}
+      run: |
+        # Run fastlane to verify SSH access
+        bundle exec fastlane verify_ssh
+        
+        # Test direct git access
+        git ls-remote $MATCH_GIT_URL
+
   build:
     name: Build Safari Extension
     runs-on: macos-latest
-    timeout-minutes: 20
+    timeout-minutes: 10
+    needs: verify-ssh # Only run if SSH verification succeeds
 
     steps:
     - name: Checkout code
@@ -39,46 +110,10 @@ jobs:
         gem install fastlane
         npm install
 
-    - name: Create directories and print environment info
-      run: |
-        npm run create-dirs
-        npm run print-env
-
-    - name: Convert Git URL to SSH format
-      id: convert_url
-      run: |
-        # Print original URL (masked for security)
-        echo "Original URL format: ${MATCH_GIT_URL/https:\/\/*@/https://***@}"
-        
-        # Convert HTTPS URL to SSH format
-        if [[ "$MATCH_GIT_URL" == https://* ]]; then
-          # Extract username and repo from HTTPS URL
-          REPO_PATH=$(echo "$MATCH_GIT_URL" | sed -E 's|https://[^@]*@?github.com/||' | sed -E 's|\.git$||')
-          SSH_URL="git@github.com:${REPO_PATH}.git"
-          echo "Converted to SSH format: ${SSH_URL}"
-        else
-          SSH_URL="$MATCH_GIT_URL"
-          echo "URL already in SSH format: ${SSH_URL/git@/git@***@}"
-        fi
-        
-        # Save to GitHub environment
-        echo "MATCH_GIT_URL=$SSH_URL" >> $GITHUB_ENV
-        echo "git_url=$SSH_URL" >> $GITHUB_OUTPUT
+    - name: Setup SSH key
       env:
-        MATCH_GIT_URL: ${{ secrets.MATCH_GIT_URL }}
-    - name: Setup code signing
-      env:
-        # For manual signing (Option 1)
-        CERTIFICATE_BASE64: ${{ secrets.CERTIFICATE_BASE64 }}
-        CERTIFICATE_PASSWORD: ${{ secrets.CERTIFICATE_PASSWORD }}
-        PROVISIONING_PROFILE_BASE64: ${{ secrets.PROVISIONING_PROFILE_BASE64 }}
-        PROVISIONING_PROFILE_EXTENSION_BASE64: ${{ secrets.PROVISIONING_PROFILE_EXTENSION_BASE64 }}
-        KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD || 'temporary_password' }}
-        # For fastlane match (Option 3)
-        MATCH_PASSWORD: ${{ secrets.MATCH_PASSWORD }}
-        MATCH_GIT_URL: ${{ env.MATCH_GIT_URL }}
-        MATCH_KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD || 'temporary_password' }}
         SSH_KEY: ${{ secrets.SSH_KEY }}
+        MATCH_GIT_URL: ${{ secrets.MATCH_GIT_URL }}
       run: |
         # Setup SSH directory and key with proper permissions
         mkdir -p ~/.ssh
@@ -90,52 +125,35 @@ jobs:
         ssh-keyscan github.com >> ~/.ssh/known_hosts
         chmod 644 ~/.ssh/known_hosts
         
-        # Configure git to use SSH key
-        git config --global core.sshCommand "ssh -i ~/.ssh/id_ed25519 -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new"
+        # Set GIT_SSH_COMMAND environment variable
+        export GIT_SSH_COMMAND="ssh -i ~/.ssh/id_ed25519 -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new"
+        echo "GIT_SSH_COMMAND=$GIT_SSH_COMMAND" >> $GITHUB_ENV
         
-        # Set GIT_SSH_COMMAND environment variable for fastlane
-        echo "GIT_SSH_COMMAND=ssh -i ~/.ssh/id_ed25519 -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new" >> $GITHUB_ENV
-        
-        # Debug SSH setup
-        npm run debug-ssh
-        
-        # Test SSH connection to GitHub
-        ssh -T git@github.com -o StrictHostKeyChecking=accept-new || true
-        
-        # Test Git SSH connection to certificates repository
-        npm run test-git-ssh
-        
-        # Run match development with readonly flag for safety
-        npm run match:development
+        # Convert HTTPS URL to SSH format if needed
+        if [[ "$MATCH_GIT_URL" == https://* ]]; then
+          REPO_PATH=$(echo "$MATCH_GIT_URL" | sed -E 's|https://[^@]*@?github.com/||' | sed -E 's|\.git$||')
+          SSH_URL="git@github.com:${REPO_PATH}.git"
+          echo "MATCH_GIT_URL=$SSH_URL" >> $GITHUB_ENV
+        else
+          echo "MATCH_GIT_URL=$MATCH_GIT_URL" >> $GITHUB_ENV
+        fi
 
-    - name: Build with Fastlane or xcodebuild
+    - name: Build with simplified fastlane
       env:
         TEAM_ID: ${{ secrets.TEAM_ID }}
         FASTLANE_APPLE_ID: ${{ secrets.FASTLANE_APPLE_ID }}
-        FASTLANE_APPLE_APPLICATION_SPECIFIC_PASSWORD: ${{ secrets.FASTLANE_APPLE_APPLICATION_SPECIFIC_PASSWORD }}
-        PROVISIONING_PROFILE_SPECIFIER: ${{ secrets.PROVISIONING_PROFILE_SPECIFIER }}
-        EXTENSION_PROVISIONING_PROFILE_SPECIFIER: ${{ secrets.EXTENSION_PROVISIONING_PROFILE_SPECIFIER }}
         MATCH_PASSWORD: ${{ secrets.MATCH_PASSWORD }}
-        MATCH_GIT_URL: ${{ env.MATCH_GIT_URL }}
       run: |
-        # Validate JavaScript
-        npm run validate-js
-        npm run build-fastlane
-        
-        # Verify and create summary
-        npm run verify-build || true
-        npm run create-summary || true
-
-    - name: Package extension
-      run: npm run package-extension
+        # Run simplified build
+        bundle exec fastlane build_simple
 
     - name: Upload build artifacts
       if: always()
       uses: actions/upload-artifact@v4
       with:
-        name: safari-extension
+        name: safari-extension-build
         path: |
-          ./logs/**
-          ./dist/**
+          ./build/logs/**
+          ./build/derived/**
         if-no-files-found: warn
-        retention-days: 7
+        retention-days: 3

@@ -16,16 +16,16 @@
     "encode-certificates": "node ./scripts/encode-certificates.js",
     "ci": "npm run create-dirs && npm run print-env && npm run setup-signing && npm run validate-js && npm run build && npm run verify-build && npm run create-summary && npm run package-extension",
     "ci-fastlane": "npm run load-env && npm run create-dirs && npm run print-env && npm run setup-signing && npm run build-fastlane && npm run verify-build && npm run create-summary && npm run package-extension",
+    "ci-simple": "npm run load-env && npm run create-dirs && npm run print-env && npm run test-git-ssh && npm run match:simple",
     "precommit": "npm run validate-js",
     
     "fastlane": "fastlane",
     
     "match:development": "GIT_SSH_COMMAND=\"ssh -i ~/.ssh/id_ed25519 -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new\" fastlane match development --app_identifier xyz.russ.russ5,xyz.russ.russ5.Extension --readonly --verbose",
+    "match:verify": "GIT_SSH_COMMAND=\"ssh -i ~/.ssh/id_ed25519 -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new -v\" fastlane verify_ssh",
+    "match:simple": "GIT_SSH_COMMAND=\"ssh -i ~/.ssh/id_ed25519 -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new\" fastlane build_simple",
     "match:appstore": "fastlane match appstore --app_identifier xyz.russ.russ5,xyz.russ.russ5.Extension",
     "match:adhoc": "fastlane match adhoc --app_identifier xyz.russ.russ5,xyz.russ.russ5.Extension",
-    "match:nuke:development": "fastlane match nuke development",
-    "match:nuke:appstore": "fastlane match nuke appstore",
-    "match:nuke:adhoc": "fastlane match nuke adhoc",
     
     "lane:build_dev": "fastlane build_dev",
     "lane:build_dev_alt": "fastlane build_dev_alt",
