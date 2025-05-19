@@ -20,7 +20,7 @@
     
     "fastlane": "fastlane",
     
-    "match:development": "fastlane match development --app_identifier xyz.russ.russ5,xyz.russ.russ5.Extension --readonly --verbose",
+    "match:development": "GIT_SSH_COMMAND=\"ssh -i ~/.ssh/id_ed25519 -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new\" fastlane match development --app_identifier xyz.russ.russ5,xyz.russ.russ5.Extension --readonly --verbose",
     "match:appstore": "fastlane match appstore --app_identifier xyz.russ.russ5,xyz.russ.russ5.Extension",
     "match:adhoc": "fastlane match adhoc --app_identifier xyz.russ.russ5,xyz.russ.russ5.Extension",
     "match:nuke:development": "fastlane match nuke development",
@@ -41,6 +41,7 @@
     "convert-git-url": "npm run load-env && node ./scripts/convert-git-url.js",
     "test-ssh-key": "npm run load-env && npm run convert-git-url && node ./scripts/test-ssh-key.js",
     "debug-ssh": "npm run load-env && node ./scripts/debug-ssh.js",
+    "test-git-ssh": "npm run load-env && npm run convert-git-url && node ./scripts/test-git-ssh.js",
     "match-test": "npm run load-env && npm run test-ssh-key && node -e \"const {execSync}=require('child_process');console.log('Testing with:\\nTEAM_ID: ' + process.env.TEAM_ID + '\\nFASTLANE_APPLE_ID: ' + process.env.FASTLANE_APPLE_ID + '\\nMATCH_GIT_URL: ' + process.env.MATCH_GIT_URL);try{console.log('\\nRunning match development...');execSync('npm run match:development',{stdio:'inherit'});console.log('\\nRunning build_dev lane...');execSync('npm run lane:build_dev',{stdio:'inherit'});}catch(e){console.log('\\nFirst approach failed, trying alternative approach...');try{execSync('npm run lane:build_dev_alt',{stdio:'inherit'});}catch(e2){console.error('\\n❌ Both approaches failed. Error:',e2.message);process.exit(1);}}console.log('\\n✅ Test completed!');\"}",
     
     "browserstack-upload": "npm run load-env && npm run lane:browserstack",

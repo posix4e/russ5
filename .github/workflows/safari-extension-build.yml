@@ -93,11 +93,17 @@ jobs:
         # Configure git to use SSH key
         git config --global core.sshCommand "ssh -i ~/.ssh/id_ed25519 -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new"
         
+        # Set GIT_SSH_COMMAND environment variable for fastlane
+        echo "GIT_SSH_COMMAND=ssh -i ~/.ssh/id_ed25519 -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new" >> $GITHUB_ENV
+        
         # Debug SSH setup
         npm run debug-ssh
         
-        # Test SSH connection
+        # Test SSH connection to GitHub
         ssh -T git@github.com -o StrictHostKeyChecking=accept-new || true
+        
+        # Test Git SSH connection to certificates repository
+        npm run test-git-ssh
         
         # Run match development with readonly flag for safety
         npm run match:development

@@ -7,7 +7,9 @@ storage_mode("git")
 
 # Use SSH for git authentication
 git_basic_authorization(nil) # Disable basic auth
-git_ssh_command("ssh -i ~/.ssh/id_ed25519 -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new")
+
+# Use git_private_key instead of git_ssh_command
+git_private_key("~/.ssh/id_ed25519")
 
 # For debugging
 verbose(true)
