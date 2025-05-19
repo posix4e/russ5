@@ -48,9 +48,8 @@ platform :ios do
       build: true,
       xcargs: "-allowProvisioningUpdates -verbose",
       buildlog_path: "./build/logs",
-      derivedDataPath: "./build/derived",
-      # Add a timeout to prevent hanging
-      timeout: 300
+      derivedDataPath: "./build/derived"
+      # Removed timeout parameter as it might not be supported
     )
   end
 end
