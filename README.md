@@ -238,7 +238,32 @@ bundle exec fastlane browserstack_build_and_test
 
 This lane:
 - Combines the `browserstack` and `browserstack_test` lanes
-- Builds the app, uploads it to BrowserStack, and runs tests
+
+### NPM Scripts for BrowserStack
+
+For easier integration, the following npm scripts are available:
+
+```bash
+# Upload and test your app on BrowserStack (using Fastlane)
+npm run browserstack-build-and-test
+
+# Or upload only (without running tests)
+npm run browserstack-upload
+
+# Or run tests only (if app is already uploaded)
+npm run browserstack-test
+
+# Advanced BrowserStack operations:
+
+# Upload a test suite to BrowserStack
+npm run browserstack-upload-testsuite
+
+# Run tests on BrowserStack (requires app ID and test suite ID)
+npm run browserstack-run-tests
+
+# Check test results from BrowserStack
+npm run browserstack-check-results
+```
 
 ### Customizing BrowserStack Tests
 

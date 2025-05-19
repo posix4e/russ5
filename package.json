@@ -43,7 +43,11 @@
     "browserstack-upload": "npm run load-env && npm run lane:browserstack",
     "browserstack-test": "npm run load-env && npm run lane:browserstack_test",
     "browserstack-build-and-test": "npm run load-env && npm run lane:browserstack_build_and_test",
-    "ci-browserstack": "npm run load-env && npm run create-dirs && npm run print-env && npm run setup-signing && npm run validate-js && npm run browserstack-build-and-test && npm run create-summary"
+    "ci-browserstack": "npm run load-env && npm run create-dirs && npm run print-env && npm run setup-signing && npm run validate-js && npm run browserstack-build-and-test && npm run create-summary",
+    
+    "browserstack-upload-testsuite": "npm run load-env && node ./scripts/browserstack-upload-testsuite.js",
+    "browserstack-run-tests": "npm run load-env && node ./scripts/browserstack-run-tests.js",
+    "browserstack-check-results": "npm run load-env && node ./scripts/browserstack-check-results.js"
   },
   "repository": {
     "type": "git",
