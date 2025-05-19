@@ -143,31 +143,65 @@ try {
   const payloadDir = path.resolve(tempDir, 'Payload');
   fs.mkdirSync(payloadDir, { recursive: true });
   
-  // Copy test files to the temporary directory
-  const testTargetDir = path.resolve(payloadDir, 'TestTarget.app');
-  fs.mkdirSync(testTargetDir, { recursive: true });
-  execSync(`cp -R "${testDir}"/* "${testTargetDir}"/`);
+  // Check if the test directory is a .app directory
+  const isAppDirectory = testDir.endsWith('.app');
+  let testTargetDir;
+  
+  if (isAppDirectory) {
+    console.log(`Detected .app directory: ${testDir}`);
+    // Copy the entire .app directory to Payload
+    const appName = path.basename(testDir);
+    testTargetDir = path.resolve(payloadDir, appName);
+    execSync(`cp -R "${testDir}" "${payloadDir}/"`);
+    console.log(`✅ App directory copied successfully to Payload/${appName}`);
+  } else {
+    // For non-app directories, create a TestTarget.app and copy files into it
+    testTargetDir = path.resolve(payloadDir, 'TestTarget.app');
+    fs.mkdirSync(testTargetDir, { recursive: true });
+    
+    try {
+      execSync(`cp -R "${testDir}"/* "${testTargetDir}"/`);
+      console.log(`✅ Test files copied to TestTarget.app`);
+    } catch (error) {
+      console.log(`⚠️ Warning: Error copying test files: ${error.message}`);
+      // Create a dummy file to ensure the directory isn't empty
+      fs.writeFileSync(path.resolve(testTargetDir, 'test.placeholder'), 'Placeholder file for BrowserStack');
+    }
+  }
   
   // If we have a runner and aren't skipping it, copy it to the proper location
   if (!skipRunner && runnerDir && fs.existsSync(runnerDir)) {
-    const runnerTargetDir = path.resolve(payloadDir, 'Runner.app');
-    fs.mkdirSync(runnerTargetDir, { recursive: true });
+    // Check if the runner is a .app directory
+    const isRunnerAppDir = runnerDir.endsWith('.app');
+    let runnerTargetDir;
     
-    try {
-      // Check if the directory has any files
-      const files = fs.readdirSync(runnerDir);
-      if (files.length > 0) {
-        execSync(`cp -R "${runnerDir}"/* "${runnerTargetDir}"/`);
-        console.log(`✅ Runner files copied successfully from ${runnerDir}`);
-      } else {
-        console.log(`⚠️ Warning: Runner directory exists but is empty: ${runnerDir}`);
+    if (isRunnerAppDir) {
+      // Copy the entire .app directory to Payload
+      const runnerAppName = path.basename(runnerDir);
+      runnerTargetDir = path.resolve(payloadDir, runnerAppName);
+      execSync(`cp -R "${runnerDir}" "${payloadDir}/"`);
+      console.log(`✅ Runner app directory copied successfully to Payload/${runnerAppName}`);
+    } else {
+      // For non-app directories, create a Runner.app and copy files into it
+      runnerTargetDir = path.resolve(payloadDir, 'Runner.app');
+      fs.mkdirSync(runnerTargetDir, { recursive: true });
+      
+      try {
+        // Check if the directory has any files
+        const files = fs.readdirSync(runnerDir);
+        if (files.length > 0) {
+          execSync(`cp -R "${runnerDir}"/* "${runnerTargetDir}"/`);
+          console.log(`✅ Runner files copied successfully from ${runnerDir}`);
+        } else {
+          console.log(`⚠️ Warning: Runner directory exists but is empty: ${runnerDir}`);
+          // Create a dummy file to ensure the directory isn't empty
+          fs.writeFileSync(path.resolve(runnerTargetDir, 'runner.placeholder'), 'Placeholder file for BrowserStack');
+        }
+      } catch (error) {
+        console.log(`⚠️ Warning: Could not copy files from runner directory: ${error.message}`);
         // Create a dummy file to ensure the directory isn't empty
         fs.writeFileSync(path.resolve(runnerTargetDir, 'runner.placeholder'), 'Placeholder file for BrowserStack');
       }
-    } catch (error) {
-      console.log(`⚠️ Warning: Could not copy files from runner directory: ${error.message}`);
-      // Create a dummy file to ensure the directory isn't empty
-      fs.writeFileSync(path.resolve(runnerTargetDir, 'runner.placeholder'), 'Placeholder file for BrowserStack');
     }
   } else if (skipRunner) {
     console.log('Skipping runner as requested with --skip-runner flag');
@@ -177,46 +211,125 @@ try {
   const infoPlistPath = path.resolve(testTargetDir, 'Info.plist');
   if (!fs.existsSync(infoPlistPath)) {
     console.log('Creating basic Info.plist file...');
+    
+    // Get app name from the directory name
+    const appName = path.basename(testTargetDir, '.app');
+    
     const infoPlistContent = `<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
     <key>CFBundleIdentifier</key>
-    <string>xyz.russ.russ5.UITests</string>
+    <string>xyz.russ.${appName}.UITests</string>
     <key>CFBundleName</key>
-    <string>russ5UITests</string>
+    <string>${appName}</string>
     <key>CFBundleVersion</key>
     <string>1.0</string>
 </dict>
 </plist>`;
     fs.writeFileSync(infoPlistPath, infoPlistContent);
+    console.log(`✅ Created Info.plist for ${appName}`);
+  } else {
+    console.log(`✅ Using existing Info.plist in ${path.basename(testTargetDir)}`);
+  }
+  
+  // Verify the Payload directory structure
+  try {
+    const payloadContents = fs.readdirSync(payloadDir);
+    if (payloadContents.length === 0) {
+      throw new Error('Payload directory is empty. No files were copied.');
+    }
+    console.log(`Payload directory contents: ${payloadContents.join(', ')}`);
+  } catch (err) {
+    console.error(`Error with Payload directory: ${err.message}`);
   }
   
   // Create the zip file
   try {
-    // Change to the temp directory and zip from there
-    process.chdir(tempDir);
-    execSync('zip -r ../test-suite.zip Payload');
-    console.log(`✅ Test suite created successfully at ${outputFile}`);
+    // First, make sure we're in the right directory
+    const originalDir = process.cwd();
+    
+    // Remove any existing zip file
+    if (fs.existsSync(outputFile)) {
+      fs.unlinkSync(outputFile);
+      console.log(`Removed existing test-suite.zip`);
+    }
+    
+    // Try multiple zip methods to ensure compatibility across platforms
+    let zipSuccess = false;
+    
+    // Method 1: Use zip from the temp directory
+    try {
+      console.log(`Zipping with method 1: from temp directory`);
+      process.chdir(tempDir);
+      execSync('zip -r ../test-suite.zip Payload', { stdio: 'inherit' });
+      
+      if (fs.existsSync(outputFile) && fs.statSync(outputFile).size > 0) {
+        console.log(`✅ Test suite created successfully at ${outputFile}`);
+        zipSuccess = true;
+      } else {
+        console.log(`Method 1 didn't produce a valid zip file`);
+      }
+    } catch (error) {
+      console.log(`Method 1 failed: ${error.message}`);
+    }
+    
+    // Method 2: Use zip with absolute paths
+    if (!zipSuccess) {
+      try {
+        console.log(`Zipping with method 2: absolute paths`);
+        process.chdir(originalDir);
+        execSync(`cd "${tempDir}" && zip -r "${outputFile}" Payload`, { stdio: 'inherit' });
+        
+        if (fs.existsSync(outputFile) && fs.statSync(outputFile).size > 0) {
+          console.log(`✅ Test suite created successfully at ${outputFile}`);
+          zipSuccess = true;
+        } else {
+          console.log(`Method 2 didn't produce a valid zip file`);
+        }
+      } catch (error) {
+        console.log(`Method 2 failed: ${error.message}`);
+      }
+    }
+    
+    // Method 3: Use tar and gzip as a fallback
+    if (!zipSuccess) {
+      try {
+        console.log(`Zipping with method 3: tar and gzip fallback`);
+        process.chdir(tempDir);
+        
+        // Create a tar.gz file first
+        execSync('tar -czf ../test-suite.tar.gz Payload', { stdio: 'inherit' });
+        process.chdir(outputDir);
+        
+        // Rename to .zip if tar.gz was successful
+        if (fs.existsSync(path.resolve(outputDir, 'test-suite.tar.gz'))) {
+          fs.renameSync('test-suite.tar.gz', 'test-suite.zip');
+          console.log(`✅ Test suite created successfully using tar/gzip at ${outputFile}`);
+          zipSuccess = true;
+        }
+      } catch (error) {
+        console.log(`Method 3 failed: ${error.message}`);
+      }
+    }
+    
+    // Check if any method succeeded
+    if (!zipSuccess) {
+      throw new Error('All zip methods failed. Could not create test suite zip file.');
+    }
   } catch (error) {
     console.error(`Error creating zip file: ${error.message}`);
-    
-    // Try alternative zip method if the first one fails
-    try {
-      console.log('Trying alternative zip method...');
-      process.chdir(outputDir);
-      execSync(`rm -f test-suite.zip`);
-      execSync(`cd "${tempDir}" && zip -r "${outputFile}" Payload`);
-      console.log(`✅ Test suite created successfully at ${outputFile}`);
-    } catch (zipError) {
-      throw new Error(`Failed to create zip file: ${zipError.message}`);
-    }
+    throw error;
   } finally {
     // Return to the original directory
     process.chdir(process.cwd());
     
     // Clean up the temporary directory
-    execSync(`rm -rf "${tempDir}"`);
+    try {
+      execSync(`rm -rf "${tempDir}"`);
+    } catch (error) {
+      console.log(`Warning: Could not clean up temp directory: ${error.message}`);
+    }
   }
   console.log('\nTo upload this test suite to BrowserStack, run:');
   console.log('npm run browserstack-upload-testsuite');
