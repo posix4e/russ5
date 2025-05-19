@@ -52,17 +52,16 @@ platform :ios do
     
     # Note: To run tests on BrowserStack, you need to use their REST API or CLI
     # The plugin doesn't provide a direct way to run tests
-    # You can use the following shell command to trigger tests:
-    sh """
-    curl -u '#{ENV["BROWSERSTACK_USERNAME"]}:#{ENV["BROWSERSTACK_ACCESS_KEY"]}' \\
-    -X POST 'https://api-cloud.browserstack.com/app-automate/xcuitest/v2/build' \\
-    -d '{
-      "app": "#{app_url}",
-      "testSuite": "#{ENV["BROWSERSTACK_TEST_SUITE_ID"] || "YOUR_TEST_SUITE_ID"}",
-      "devices": ["iPhone 14 Pro-16"]
-    }' \\
-    -H 'Content-Type: application/json'
-    """
+    
+    # Create a JSON payload for the API request
+    test_suite_id = ENV["BROWSERSTACK_TEST_SUITE_ID"] || "YOUR_TEST_SUITE_ID"
+    payload = %Q{{"app": "#{app_url}", "testSuite": "#{test_suite_id}", "devices": ["iPhone 14 Pro-16"]}}
+    
+    # Use the shell command to trigger tests
+    sh "curl -u '#{ENV["BROWSERSTACK_USERNAME"]}:#{ENV["BROWSERSTACK_ACCESS_KEY"]}' \
+    -X POST 'https://api-cloud.browserstack.com/app-automate/xcuitest/v2/build' \
+    -d '#{payload}' \
+    -H 'Content-Type: application/json'"
     
     puts "Tests have been triggered on BrowserStack. Check your BrowserStack dashboard for results."
   end
