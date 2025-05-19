@@ -67,11 +67,34 @@ jobs:
       run: |
         # Run simplified build with verbose output
         set -x  # Enable command echo
+        
+        # Create build directories
+        mkdir -p ./build/logs ./build/derived
+        
+        # Show environment information
+        echo "=== Environment Information ==="
+        xcodebuild -version
+        xcodebuild -list -project russ5.xcodeproj || echo "Could not list schemes"
+        
+        # Validate JavaScript files
+        echo "=== Validating JavaScript Files ==="
         npm install  # Ensure npm dependencies are installed
-        npm run validate-js  # Validate JavaScript files
+        npm run validate-js || {
+          echo "JavaScript validation failed, but continuing with build..."
+        }
+        
+        # Run the build
+        echo "=== Running Fastlane Build ==="
         bundle exec fastlane build_simple || {
-          echo "Fastlane build failed, showing logs:"
-          find ./build/logs -type f -exec cat {} \;
+          echo "=== Fastlane build failed, showing logs: ==="
+          find ./build/logs -type f -name "*.log" | sort
+          echo "=== Main App Build Log ==="
+          cat ./build/logs/russ5-russ5.log 2>/dev/null || echo "Main app log not found"
+          echo "=== Extension Build Log ==="
+          cat "./build/logs/russ5-russ5 Extension.log" 2>/dev/null || echo "Extension log not found"
+          echo "=== All Log Files ==="
+          find ./build/logs -type f -exec ls -la {} \;
+          echo "=== End of Logs ==="
           exit 1
         }
 

@@ -80,6 +80,11 @@ platform :ios do
       )
     rescue => e
       UI.error("Main app build failed: #{e.message}")
+      
+      # Dump the build log for debugging
+      UI.message("Main app build log:")
+      sh("cat ./build/logs/russ5-russ5.log || echo 'Log file not found'", log: true)
+      
       UI.message("Trying to build just the extension...")
       
       # Try to build just the extension
@@ -96,6 +101,15 @@ platform :ios do
         )
       rescue => e2
         UI.error("Extension build also failed: #{e2.message}")
+        
+        # Dump the extension build log for debugging
+        UI.message("Extension build log:")
+        sh("cat ./build/logs/russ5-russ5\\ Extension.log || echo 'Log file not found'", log: true)
+        
+        # List all log files
+        UI.message("All available log files:")
+        sh("find ./build/logs -type f -name '*.log' | xargs ls -la", log: true)
+        
         UI.error("Both build attempts failed. Check the logs for details.")
         raise e2
       end
