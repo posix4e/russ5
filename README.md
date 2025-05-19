@@ -264,8 +264,36 @@ npm run browserstack-create-testsuite-no-runner
 # Upload a test suite to BrowserStack
 npm run browserstack-upload-testsuite
 
-# Run tests on BrowserStack (requires app ID and test suite ID)
+# Run tests on BrowserStack
 npm run browserstack-run-tests
+
+# Check test results on BrowserStack
+npm run browserstack-check-results
+
+## GitHub Actions Integration
+
+A GitHub Actions workflow is included to automate the BrowserStack testing process. The workflow:
+
+1. Builds the iOS app using Fastlane
+2. Uploads the app to BrowserStack
+3. Creates a test suite
+4. Uploads the test suite to BrowserStack
+5. Runs the tests on BrowserStack
+6. Waits for the tests to complete
+7. Reports the test results
+
+To use this workflow:
+
+1. Add the following secrets to your GitHub repository:
+   - `BROWSERSTACK_USERNAME`: Your BrowserStack username
+   - `BROWSERSTACK_ACCESS_KEY`: Your BrowserStack access key
+
+2. Trigger the workflow manually from the Actions tab, or it will run automatically on push to main/new-cleanup branches or on pull requests to main.
+
+3. When triggering manually, you can configure:
+   - Whether to skip the runner in the test suite
+   - Which devices to test on (comma-separated list)
+
 
 # Check test results from BrowserStack
 npm run browserstack-check-results

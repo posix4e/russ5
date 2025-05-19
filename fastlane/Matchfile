@@ -18,11 +18,6 @@ username(ENV["FASTLANE_APPLE_ID"])
 # This can be overridden by setting the TEAM_ID environment variable
 team_id(ENV["TEAM_ID"])
 
-# For GitHub Actions, we can use basic authorization with a token
-if ENV["MATCH_GIT_BASIC_AUTHORIZATION"]
-  git_basic_authorization(ENV["MATCH_GIT_BASIC_AUTHORIZATION"])
-end
-
 # Set to readonly in CI environments to prevent creating new certificates
 readonly(ENV["CI"] == "true")
 

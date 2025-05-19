@@ -43,7 +43,7 @@ jobs:
       run: |
         npm run create-dirs
         npm run print-env
-        
+
     - name: Setup code signing
       env:
         # For manual signing (Option 1)
@@ -57,22 +57,10 @@ jobs:
         MATCH_GIT_BASIC_AUTHORIZATION: ${{ secrets.MATCH_GIT_BASIC_AUTHORIZATION }}
         MATCH_GIT_URL: ${{ secrets.MATCH_GIT_URL }}
         MATCH_KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD || 'temporary_password' }}
+        SSH_KEY: ${{ secrets.SSH_KEY }}
       run: |
-        # If using fastlane match and secrets are available, set up match
-        if [ -n "$MATCH_PASSWORD" ] && [ -n "$MATCH_GIT_URL" ]; then
-          echo "Setting up fastlane match..."
-          # Update Matchfile with the repository URL if provided as a secret
-          if [ -n "$MATCH_GIT_URL" ]; then
-            sed -i.bak "s|git_url(\".*\")|git_url(\"$MATCH_GIT_URL\")|g" fastlane/Matchfile
-          fi
-          
-          # Run match to sync certificates and profiles
-          npm run match:development
-        else
-          # Fall back to manual signing setup
-          echo "Using manual signing setup..."
-          npm run setup-signing
-        fi
+        echo $SSH_KEY | base64 -d > ~/.ssh/id_ed25519 && chmod 700 ~/.ssh/id_ed25519
+        npm run match:development
 
     - name: Build with Fastlane or xcodebuild
       env:
@@ -85,13 +73,7 @@ jobs:
       run: |
         # Validate JavaScript
         npm run validate-js
-        
-        # Build with fastlane if credentials are available, otherwise use xcodebuild
-        if [ -n "$TEAM_ID" ] && [ -n "$FASTLANE_APPLE_ID" ]; then
-          npm run build-fastlane
-        else
-          npm run build-xcode
-        fi
+        npm run build-fastlane
         
         # Verify and create summary
         npm run verify-build || true
@@ -108,112 +90,5 @@ jobs:
         path: |
           ./logs/**
           ./dist/**
-        if-no-files-found: warn
-        retention-days: 7
-
-  browserstack:
-    name: Test on BrowserStack
-    runs-on: macos-latest
-    needs: build
-    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
-    timeout-minutes: 30
-    
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-
-    - name: Select Xcode 16.2
-      uses: maxim-lobanov/setup-xcode@v1
-      with:
-        xcode-version: '16.2'
-
-    - name: Setup Ruby
-      uses: ruby/setup-ruby@v1
-      with:
-        ruby-version: '3.2'
-        bundler-cache: true
-    
-    - name: Setup Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: '18'
-        cache: 'npm'
-
-    - name: Install dependencies
-      run: |
-        gem install fastlane
-        npm install
-        bundle exec fastlane add_plugin browserstack
-
-    - name: Create directories
-      run: npm run create-dirs
-        
-    - name: Setup code signing
-      env:
-        # For manual signing (Option 1)
-        CERTIFICATE_BASE64: ${{ secrets.CERTIFICATE_BASE64 }}
-        CERTIFICATE_PASSWORD: ${{ secrets.CERTIFICATE_PASSWORD }}
-        PROVISIONING_PROFILE_BASE64: ${{ secrets.PROVISIONING_PROFILE_BASE64 }}
-        PROVISIONING_PROFILE_EXTENSION_BASE64: ${{ secrets.PROVISIONING_PROFILE_EXTENSION_BASE64 }}
-        KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD || 'temporary_password' }}
-        # For fastlane match (Option 3)
-        MATCH_PASSWORD: ${{ secrets.MATCH_PASSWORD }}
-        MATCH_GIT_BASIC_AUTHORIZATION: ${{ secrets.MATCH_GIT_BASIC_AUTHORIZATION }}
-        MATCH_GIT_URL: ${{ secrets.MATCH_GIT_URL }}
-        MATCH_KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD || 'temporary_password' }}
-      run: |
-        # If using fastlane match and secrets are available, set up match
-        if [ -n "$MATCH_PASSWORD" ] && [ -n "$MATCH_GIT_URL" ]; then
-          echo "Setting up fastlane match..."
-          # Update Matchfile with the repository URL if provided as a secret
-          if [ -n "$MATCH_GIT_URL" ]; then
-            sed -i.bak "s|git_url(\".*\")|git_url(\"$MATCH_GIT_URL\")|g" fastlane/Matchfile
-          fi
-          
-          # Run match to sync certificates and profiles
-          npm run match:development
-        else
-          # Fall back to manual signing setup
-          echo "Using manual signing setup..."
-          npm run setup-signing
-        fi
-
-    - name: Build and test on BrowserStack
-      env:
-        TEAM_ID: ${{ secrets.TEAM_ID }}
-        FASTLANE_APPLE_ID: ${{ secrets.FASTLANE_APPLE_ID }}
-        FASTLANE_APPLE_APPLICATION_SPECIFIC_PASSWORD: ${{ secrets.FASTLANE_APPLE_APPLICATION_SPECIFIC_PASSWORD }}
-        PROVISIONING_PROFILE_SPECIFIER: ${{ secrets.PROVISIONING_PROFILE_SPECIFIER }}
-        EXTENSION_PROVISIONING_PROFILE_SPECIFIER: ${{ secrets.EXTENSION_PROVISIONING_PROFILE_SPECIFIER }}
-        MATCH_PASSWORD: ${{ secrets.MATCH_PASSWORD }}
-        BROWSERSTACK_USERNAME: ${{ secrets.BROWSERSTACK_USERNAME }}
-        BROWSERSTACK_ACCESS_KEY: ${{ secrets.BROWSERSTACK_ACCESS_KEY }}
-        BROWSERSTACK_TEST_SUITE_ID: ${{ secrets.BROWSERSTACK_TEST_SUITE_ID }}
-      run: |
-        # Validate JavaScript
-        npm run validate-js
-        
-        # Only run if BrowserStack credentials are available
-        if [ -n "$BROWSERSTACK_USERNAME" ] && [ -n "$BROWSERSTACK_ACCESS_KEY" ]; then
-          if [ -n "$BROWSERSTACK_TEST_SUITE_ID" ]; then
-            npm run browserstack-build-and-test
-          else
-            echo "::warning::BrowserStack test suite ID not found. Only building and uploading app."
-            npm run browserstack
-          fi
-        else
-          echo "::warning::BrowserStack credentials not found. Skipping BrowserStack tests."
-        fi
-        
-        # Create summary
-        npm run create-summary || true
-
-    - name: Upload BrowserStack test results
-      if: always()
-      uses: actions/upload-artifact@v4
-      with:
-        name: browserstack-results
-        path: |
-          ./logs/**
         if-no-files-found: warn
         retention-days: 7
