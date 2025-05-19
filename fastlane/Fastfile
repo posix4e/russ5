@@ -28,19 +28,24 @@ platform :ios do
   
   desc "Run tests on BrowserStack"
   lane :browserstack_test do
-    # Build the app for testing
-    build_ios_app(
-      scheme: "russ5",
-      export_method: "development",
-      build_for_testing: true
-    )
-    
-    # Upload the app to BrowserStack
-    app_url = upload_to_browserstack_app_automate(
-      browserstack_username: ENV["BROWSERSTACK_USERNAME"],
-      browserstack_access_key: ENV["BROWSERSTACK_ACCESS_KEY"],
-      file_path: lane_context[SharedValues::IPA_OUTPUT_PATH]
-    )
+    # Check if we already have an app uploaded to BrowserStack
+    if ENV["BROWSERSTACK_APP_ID"]
+      app_url = ENV["BROWSERSTACK_APP_ID"]
+      puts "Using existing BrowserStack app ID: #{app_url}"
+    else
+      # Build the app for testing
+      build_ios_app(
+        scheme: "russ5",
+        export_method: "development"
+      )
+      
+      # Upload the app to BrowserStack
+      app_url = upload_to_browserstack_app_automate(
+        browserstack_username: ENV["BROWSERSTACK_USERNAME"],
+        browserstack_access_key: ENV["BROWSERSTACK_ACCESS_KEY"],
+        file_path: lane_context[SharedValues::IPA_OUTPUT_PATH]
+      )
+    end
     
     # Run tests on BrowserStack
     run_tests_on_browserstack(

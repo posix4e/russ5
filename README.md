@@ -189,6 +189,10 @@ This project includes Fastlane lanes for building and testing the app on Browser
    # Add these to your .env file or export them
    export BROWSERSTACK_USERNAME="your_browserstack_username"
    export BROWSERSTACK_ACCESS_KEY="your_browserstack_access_key"
+   
+   # Optional: If you already have an app uploaded to BrowserStack, you can use its ID
+   # to skip the build and upload steps
+   export BROWSERSTACK_APP_ID="bs://your_app_id"
    ```
 
 2. **For GitHub Actions**, add these secrets:
