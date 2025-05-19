@@ -79,8 +79,12 @@ jobs:
         # Validate JavaScript files
         echo "=== Validating JavaScript Files ==="
         npm install  # Ensure npm dependencies are installed
-        npm run validate-js || {
-          echo "JavaScript validation failed, but continuing with build..."
+        
+        # Run validation but don't fail the build if it has warnings
+        node ./scripts/validate-js.js || {
+          echo "JavaScript validation reported issues, but continuing with build..."
+          echo "This is expected if there are only warnings about Readability usage."
+          echo "These warnings are informational and don't prevent the extension from working."
         }
         
         # Run the build

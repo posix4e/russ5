@@ -124,11 +124,17 @@ function checkForUndefinedReferences(filePath, knownGlobals = []) {
     }
     
     // Check if Readability is used but no existence check is present
-    if (content.includes('Readability') && 
-        !content.includes('typeof window.Readability !== "undefined"') && 
-        !content.includes('typeof Readability !== "undefined"') &&
-        !content.includes('window.Readability !== undefined') &&
-        !content.includes('Readability !== undefined')) {
+    // This is a warning, not an error, so we'll just log it but not fail the build
+    const hasReadabilityCheck = 
+      content.includes('typeof window.Readability !== "undefined"') || 
+      content.includes('typeof window.Readability !== \'undefined\'') || 
+      content.includes('typeof Readability !== "undefined"') ||
+      content.includes('typeof Readability !== \'undefined\'') ||
+      content.includes('window.Readability !== undefined') ||
+      content.includes('Readability !== undefined');
+      
+    if (content.includes('Readability') && !hasReadabilityCheck) {
+      console.warn(`⚠️ Warning: File uses Readability but doesn't check if it exists. This is just a warning, not an error.`);
       warnings.push({
         line: 1,
         column: 0,
