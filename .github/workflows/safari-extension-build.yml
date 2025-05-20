@@ -93,12 +93,25 @@ jobs:
         echo "=== Validating JavaScript Files ==="
         npm install  # Ensure npm dependencies are installed
         
-        # Run validation but don't fail the build if it has warnings
-        node ./scripts/validate-js.js || {
-          echo "JavaScript validation reported issues, but continuing with build..."
-          echo "This is expected if there are only warnings about Readability usage."
-          echo "These warnings are informational and don't prevent the extension from working."
-        }
+        # Run validation with proper path and fail fast
+        if [ -f "./scripts/validate-js.js" ]; then
+          echo "Running JavaScript validation..."
+          node ./scripts/validate-js.js
+        else
+          echo "JavaScript validation script not found at ./scripts/validate-js.js"
+          echo "Checking for script in other locations..."
+          find . -name "validate-js.js" -type f
+          
+          # If we found the script, run it
+          SCRIPT_PATH=$(find . -name "validate-js.js" -type f | head -n 1)
+          if [ -n "$SCRIPT_PATH" ]; then
+            echo "Found script at $SCRIPT_PATH"
+            node "$SCRIPT_PATH"
+          else
+            echo "ERROR: JavaScript validation script not found"
+            exit 1
+          fi
+        fi
         
         # Create mock build artifacts for CI testing
         echo "=== Creating Mock Build Artifacts ==="

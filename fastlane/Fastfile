@@ -172,36 +172,25 @@ platform :ios do
       UI.success("Successfully fetched certificates and profiles")
     rescue => e
       UI.error("Failed to get certificates: #{e.message}")
-      UI.important("Will attempt to continue with build verification using mock data")
-      # Create mock certificates directory to simulate success
-      sh("mkdir -p ~/Library/MobileDevice/Provisioning\\ Profiles/", log: true)
-      sh("touch ~/Library/MobileDevice/Provisioning\\ Profiles/mock_profile.mobileprovision", log: true)
+      UI.user_error!("Cannot continue without proper certificates - fast fail")
     end
     
-    # Verify the extension builds correctly
+    # Verify the extension builds correctly - fail fast if build fails
+    UI.message("Verifying extension build...")
+    
+    # First try to list available schemes to diagnose any issues
+    UI.message("Available schemes:")
+    sh("ls -la", log: true)
+    sh("ls -la ..", log: true)
+    sh("xcodebuild -project ../russ5.xcodeproj -list", log: true)
+    
+    # Try building with more detailed output
     begin
-      UI.message("Verifying extension build...")
-      
-      # First try to list available schemes to diagnose any issues
-      UI.message("Available schemes:")
-      sh("xcodebuild -project russ5.xcodeproj -list", log: true)
-      
-      # Try building with more detailed output and error handling
-      sh("set -o pipefail && xcodebuild -project russ5.xcodeproj -scheme 'russ5 Extension' -configuration Debug clean build -allowProvisioningUpdates -derivedDataPath ./build/derived | tee ./build/logs/xcodebuild.log", log: true)
-      
+      sh("set -o pipefail && xcodebuild -project ../russ5.xcodeproj -scheme 'russ5 Extension' -configuration Debug clean build -allowProvisioningUpdates -derivedDataPath ./build/derived | tee ./build/logs/xcodebuild.log", log: true)
       UI.success("Extension build verification successful!")
     rescue => e
       UI.error("Extension build verification failed: #{e.message}")
-      UI.message("Creating mock build artifacts for testing...")
-      
-      # Create mock build artifacts to allow testing to continue
-      sh("mkdir -p ./build/derived/Build/Products/Debug/russ5\\ Extension.appex/Contents/Resources", log: true)
-      sh("mkdir -p ./build/derived/Build/Products/Debug/russ5.app/Contents/Resources", log: true)
-      
-      # Copy any existing resources if available
-      sh("cp -R 'russ5 Extension/Resources/'* './build/derived/Build/Products/Debug/russ5 Extension.appex/Contents/Resources/' 2>/dev/null || echo 'No resources to copy'", log: true)
-      
-      UI.important("Using mock build artifacts for BrowserStack testing")
+      UI.user_error!("Build verification failed - fast fail approach")
     end
     
     # Create BrowserStack test suite
@@ -210,21 +199,17 @@ platform :ios do
     
     begin
       # Try to create the BrowserStack test suite
-      sh("node ./scripts/create-browserstack-test-suite.js || echo 'Failed to create BrowserStack test suite'", log: true)
+      sh("node ./scripts/create-browserstack-test-suite.js", log: true)
       
       # Check if the test suite was created
       if File.exist?("./dist/test-suite.zip")
         UI.success("BrowserStack test suite created successfully!")
       else
-        UI.important("Failed to create BrowserStack test suite, creating a mock test suite")
-        # Create a mock test suite for CI to continue
-        sh("cd ./dist && echo 'Mock test suite' > mock-test.js && zip -r test-suite.zip mock-test.js", log: true)
+        UI.user_error!("Failed to create BrowserStack test suite - fast fail approach")
       end
     rescue => e
       UI.error("Error creating BrowserStack test suite: #{e.message}")
-      UI.important("Creating a mock test suite to continue")
-      sh("mkdir -p ./dist", log: true)
-      sh("cd ./dist && echo 'Mock test suite' > mock-test.js && zip -r test-suite.zip mock-test.js", log: true)
+      UI.user_error!("Failed to create BrowserStack test suite - fast fail approach")
     end
     
     # Check if we have BrowserStack credentials
@@ -237,16 +222,16 @@ platform :ios do
     # Upload test suite to BrowserStack and run tests
     begin
       UI.message("Uploading test suite to BrowserStack and running tests...")
-      sh("npm run browserstack-upload-testsuite || echo 'Failed to upload test suite to BrowserStack'", log: true)
-      sh("npm run browserstack-run-tests || echo 'Failed to run tests on BrowserStack'", log: true)
+      sh("npm run browserstack-upload-testsuite", log: true)
+      sh("npm run browserstack-run-tests", log: true)
       UI.success("BrowserStack tests started successfully!")
       
       # Check test results
-      sh("npm run browserstack-check-results || echo 'Failed to check BrowserStack test results'", log: true)
+      sh("npm run browserstack-check-results", log: true)
       UI.success("BrowserStack tests completed successfully!")
     rescue => e
       UI.error("Error running BrowserStack tests: #{e.message}")
-      UI.important("BrowserStack tests could not be run, but continuing with the workflow")
+      UI.user_error!("BrowserStack tests failed - fast fail approach")
     end
   end
   
