@@ -1,292 +1,118 @@
 default_platform(:ios)
 
 platform :ios do
-  desc "Setup provisioning profiles for development"
-  lane :setup_profiles do
-    # Use match to sync development certificates and provisioning profiles
-    # with verbose logging
-    match(
-      type: "development",
-      app_identifier: ["xyz.russ.russ5", "xyz.russ.russ5.Extension"],
-      readonly: true, # Always read-only for safety
-      verbose: true   # Enable verbose logging
-    )
-  end
-  
-  desc "Verify SSH access to certificates repository"
-  lane :verify_ssh do
-    # Just run match in readonly mode with verbose logging
-    UI.message("Testing SSH access to certificates repository...")
+  # Validate certificates and profiles
+  desc "Verify certificates and profiles access"
+  lane :verify_certificates do
+    # Validate required environment variables
+    validate_required_env_vars
+    
+    # Verify access to certificates repository
+    UI.message("Verifying access to certificates repository...")
+    
+    # Use match to verify access to certificates
     match(
       type: "development",
       app_identifier: ["xyz.russ.russ5", "xyz.russ.russ5.Extension"],
       readonly: true,
       verbose: true
     )
-    UI.success("Successfully accessed certificates repository via SSH!")
+    
+    # Also verify appstore certificates
+    match(
+      type: "appstore",
+      app_identifier: ["xyz.russ.russ5", "xyz.russ.russ5.Extension"],
+      readonly: true,
+      verbose: true
+    )
+    
+    UI.success("Successfully verified access to certificates repository!")
   end
   
-  desc "Simplified build for development"
-  lane :build_simple do
-    # First verify SSH access works
-    begin
-      verify_ssh
-    rescue => e
-      UI.error("SSH verification failed: #{e.message}")
-      # Continue anyway, as this might not be critical
-    end
+  # Build the Safari extension
+  desc "Build Safari extension with proper certificates"
+  lane :build_extension do
+    # Validate required environment variables
+    validate_required_env_vars
     
-    # Create build directories
-    sh("mkdir -p ./build/logs ./build/derived")
+    # Create build directories with absolute paths
+    sh("mkdir -p #{Dir.pwd}/build/logs #{Dir.pwd}/build/derived #{Dir.pwd}/build/ipa")
     
-    # Log environment information
-    UI.message("Environment information:")
-    sh("xcodebuild -version", log: true)
-    sh("xcodebuild -list -project russ5.xcodeproj || echo 'Could not list schemes'", log: true)
+    # Get certificates and profiles
+    UI.message("Getting certificates and profiles...")
+    match(
+      type: "development",
+      app_identifier: ["xyz.russ.russ5", "xyz.russ.russ5.Extension"],
+      readonly: true,
+      verbose: true
+    )
     
-    # Enable automatic signing for all targets
-    begin
-      update_code_signing_settings(
-        use_automatic_signing: true,
-        path: "russ5.xcodeproj",
-        team_id: ENV["TEAM_ID"],
-        targets: ["russ5", "russ5 Extension"]
-      )
-    rescue => e
-      UI.error("Code signing update failed: #{e.message}")
-      # Continue anyway, we'll try to build
-    end
+    # Build the app for development
+    UI.message("Building Safari extension...")
+    gym(
+      project: "#{Dir.pwd}/russ5.xcodeproj",
+      scheme: "russ5",
+      configuration: "Debug",
+      export_method: "development",
+      export_options: {
+        provisioningProfiles: {
+          "xyz.russ.russ5": "match Development xyz.russ.russ5",
+          "xyz.russ.russ5.Extension": "match Development xyz.russ.russ5.Extension"
+        }
+      },
+      clean: true,
+      output_directory: "#{Dir.pwd}/build/ipa",
+      output_name: "russ5-debug.ipa",
+      include_symbols: true,
+      include_bitcode: false
+    )
     
-    # Validate JavaScript files
-    begin
-      UI.message("Validating JavaScript files...")
-      sh("node ./scripts/validate-js.js", log: true)
-      UI.success("JavaScript validation passed!")
-    rescue => e
-      UI.important("JavaScript validation reported issues: #{e.message}")
-      UI.message("This is expected if there are only warnings about Readability usage.")
-      UI.message("These warnings are informational and don't prevent the extension from working.")
-      # Continue anyway, we'll try to build
-    end
-    
-    # Create a mock build success for CI testing
-    # This is a temporary workaround until we can fix the actual build issues
-    begin
-      UI.message("Creating mock build artifacts for CI testing...")
-      
-      # Create mock extension directory
-      sh("mkdir -p ./build/derived/Build/Products/Debug/russ5\\ Extension.appex/Contents/Resources", log: true)
-      
-      # Copy extension resources
-      sh("cp -R 'russ5 Extension/Resources/'* './build/derived/Build/Products/Debug/russ5 Extension.appex/Contents/Resources/'", log: true)
-      
-      # Create mock app directory
-      sh("mkdir -p ./build/derived/Build/Products/Debug/russ5.app/Contents/Resources", log: true)
-      
-      # Create mock log files
-      sh("echo 'Mock build log for main app' > ./build/logs/russ5-russ5.log", log: true)
-      sh("echo 'Mock build log for extension' > './build/logs/russ5-russ5 Extension.log'", log: true)
-      
-      # List created files
-      UI.message("Created mock build artifacts:")
-      sh("find ./build -type f | sort", log: true)
-      
-      UI.success("Mock build artifacts created successfully!")
-      
-      # Try to build the main target
-      UI.message("Attempting real build (main app target)...")
-      begin
-        xcodebuild(
-          project: "russ5.xcodeproj",
-          scheme: "russ5",
-          configuration: "Debug",
-          clean: true,
-          build: true,
-          xcargs: "-allowProvisioningUpdates -verbose",
-          buildlog_path: "./build/logs",
-          derivedDataPath: "./build/derived"
-        )
-        UI.success("Main app build succeeded!")
-      rescue => e
-        UI.error("Main app build failed: #{e.message}")
-        
-        # Dump the build log for debugging
-        UI.message("Main app build log:")
-        sh("cat ./build/logs/russ5-russ5.log || echo 'Log file not found'", log: true)
-        
-        UI.message("Trying to build just the extension...")
-        
-        # Try to build just the extension
-        begin
-          xcodebuild(
-            project: "russ5.xcodeproj",
-            scheme: "russ5 Extension",
-            configuration: "Debug",
-            clean: true,
-            build: true,
-            xcargs: "-allowProvisioningUpdates -verbose",
-            buildlog_path: "./build/logs",
-            derivedDataPath: "./build/derived"
-          )
-          UI.success("Extension build succeeded!")
-        rescue => e2
-          UI.error("Extension build also failed: #{e2.message}")
-          
-          # Dump the extension build log for debugging
-          UI.message("Extension build log:")
-          sh("cat ./build/logs/russ5-russ5\\ Extension.log || echo 'Log file not found'", log: true)
-          
-          # List all log files
-          UI.message("All available log files:")
-          sh("find ./build/logs -type f -name '*.log' | xargs ls -la", log: true)
-          
-          UI.important("Both build attempts failed, but we have mock artifacts for CI testing.")
-          # Don't raise an error here, we'll use the mock artifacts
-        end
-      end
-    rescue => e
-      UI.error("Error creating mock build artifacts: #{e.message}")
-      # Continue anyway, we'll try to use whatever we have
-    end
-    
-    # Log success
-    UI.success("Build process completed!")
+    UI.success("Successfully built Safari extension!")
   end
   
-  desc "Run UI Tests with BrowserStack"
+  # Run UI tests on BrowserStack
+  desc "Run UI tests on BrowserStack"
   lane :run_ui_tests do
-    UI.message("Running UI Tests with BrowserStack...")
+    # Validate required environment variables
+    validate_required_env_vars
     
-    # Create build directories if they don't exist
-    sh("mkdir -p ./build/logs ./build/derived ./build/test_results")
+    # Validate BrowserStack environment variables
+    validate_browserstack_env_vars
     
-    # First, ensure we have the right certificates and profiles
-    begin
-      UI.message("Fetching certificates and profiles...")
-      match(
-        type: "development",
-        app_identifier: ["xyz.russ.russ5", "xyz.russ.russ5.Extension"],
-        readonly: true,
-        verbose: true
-      )
-      UI.success("Successfully fetched certificates and profiles")
-    rescue => e
-      UI.error("Failed to get certificates: #{e.message}")
-      UI.user_error!("Cannot continue without proper certificates - fast fail")
-    end
-    
-    # Verify the extension builds correctly - fail fast if build fails
-    UI.message("Verifying extension build...")
-    
-    # First try to list available schemes to diagnose any issues
-    UI.message("Available schemes:")
-    sh("ls -la", log: true)
-    sh("ls -la ..", log: true)
-    sh("xcodebuild -project ../russ5.xcodeproj -list", log: true)
-    
-    # Try building with more detailed output
-    begin
-      sh("set -o pipefail && xcodebuild -project ../russ5.xcodeproj -scheme 'russ5 Extension' -configuration Debug clean build -allowProvisioningUpdates -derivedDataPath ./build/derived | tee ./build/logs/xcodebuild.log", log: true)
-      UI.success("Extension build verification successful!")
-    rescue => e
-      UI.error("Extension build verification failed: #{e.message}")
-      UI.user_error!("Build verification failed - fast fail approach")
-    end
-    
-    # Create BrowserStack test suite
+    # Create test suite for BrowserStack
     UI.message("Creating BrowserStack test suite...")
-    sh("mkdir -p ./dist", log: true)
+    sh("node #{Dir.pwd}/scripts/create-browserstack-test-suite.js")
     
-    begin
-      # Try to create the BrowserStack test suite
-      sh("node ./scripts/create-browserstack-test-suite.js", log: true)
-      
-      # Check if the test suite was created
-      if File.exist?("./dist/test-suite.zip")
-        UI.success("BrowserStack test suite created successfully!")
-      else
-        UI.user_error!("Failed to create BrowserStack test suite - fast fail approach")
-      end
-    rescue => e
-      UI.error("Error creating BrowserStack test suite: #{e.message}")
-      UI.user_error!("Failed to create BrowserStack test suite - fast fail approach")
+    # Verify test suite was created
+    unless File.exist?("#{Dir.pwd}/dist/test-suite.zip")
+      UI.user_error!("Failed to create BrowserStack test suite")
     end
-    
-    # Check if we have BrowserStack credentials
-    if ENV["BROWSERSTACK_USERNAME"].nil? || ENV["BROWSERSTACK_ACCESS_KEY"].nil?
-      UI.important("BrowserStack credentials not found. Skipping test execution.")
-      UI.important("To run tests on BrowserStack, set BROWSERSTACK_USERNAME and BROWSERSTACK_ACCESS_KEY environment variables.")
-      return
-    end
-    
-    # Check if we have a BrowserStack App ID
-    if ENV["BROWSERSTACK_APP_ID"].nil?
-      UI.important("BROWSERSTACK_APP_ID not found. Will need to build and upload the app to BrowserStack first.")
-      
-      # Build the app for BrowserStack testing
-      UI.message("Building app for BrowserStack testing...")
-      build_app(
-        project: "russ5.xcodeproj",
-        scheme: "russ5",
-        configuration: "Debug",
-        export_method: "development",
-        clean: true,
-        output_directory: "./build/ipa",
-        output_name: "russ5-browserstack.ipa"
-      )
-      
-      # Upload to BrowserStack and get the app ID
-      UI.message("Uploading app to BrowserStack...")
-      upload_to_browserstack_app_automate(
-        browserstack_username: ENV["BROWSERSTACK_USERNAME"],
-        browserstack_access_key: ENV["BROWSERSTACK_ACCESS_KEY"],
-        file_path: "./build/ipa/russ5-browserstack.ipa"
-      )
-      
-      # The upload_to_browserstack_app_automate action should set the BROWSERSTACK_APP_ID environment variable
-      if ENV["BROWSERSTACK_APP_ID"].nil?
-        UI.user_error!("Failed to get BROWSERSTACK_APP_ID after upload - fast fail approach")
-      end
-      
-      UI.success("App uploaded to BrowserStack successfully!")
-      UI.important("For future runs, add this app ID as a GitHub secret for faster testing:")
-      UI.important("BROWSERSTACK_APP_ID=#{ENV["BROWSERSTACK_APP_ID"]}")
-    end
-    
-    UI.message("Using BrowserStack App ID: #{ENV["BROWSERSTACK_APP_ID"]}")
     
     # Upload test suite to BrowserStack and run tests
-    begin
-      UI.message("Uploading test suite to BrowserStack and running tests...")
-      sh("npm run browserstack-upload-testsuite", log: true)
-      sh("npm run browserstack-run-tests", log: true)
-      UI.success("BrowserStack tests started successfully!")
-      
-      # Check test results
-      sh("npm run browserstack-check-results", log: true)
-      UI.success("BrowserStack tests completed successfully!")
-    rescue => e
-      UI.error("Error running BrowserStack tests: #{e.message}")
-      UI.user_error!("BrowserStack tests failed - fast fail approach")
-    end
+    UI.message("Running tests on BrowserStack...")
+    sh("npm run browserstack-upload-testsuite")
+    sh("npm run browserstack-run-tests")
+    
+    # Check test results
+    sh("npm run browserstack-check-results")
+    
+    UI.success("Successfully ran UI tests on BrowserStack!")
   end
   
-  desc "Deploy a new beta build to TestFlight"
+  # Deploy to TestFlight
+  desc "Deploy to TestFlight"
   lane :beta do
-    UI.message("Preparing beta build for TestFlight...")
+    # Validate required environment variables
+    validate_required_env_vars
     
-    # Ensure we have the right certificates and profiles for app store distribution
-    begin
-      match(
-        type: "appstore",
-        app_identifier: ["xyz.russ.russ5", "xyz.russ.russ5.Extension"],
-        readonly: true,
-        verbose: true
-      )
-    rescue => e
-      UI.error("Failed to get certificates: #{e.message}")
-      UI.user_error!("Cannot continue without proper certificates")
-    end
+    # Get certificates and profiles for App Store
+    UI.message("Getting certificates and profiles for App Store...")
+    match(
+      type: "appstore",
+      app_identifier: ["xyz.russ.russ5", "xyz.russ.russ5.Extension"],
+      readonly: true,
+      verbose: true
+    )
     
     # Increment build number
     build_number = latest_testflight_build_number(
@@ -296,12 +122,13 @@ platform :ios do
     
     increment_build_number(
       build_number: build_number,
-      xcodeproj: "russ5.xcodeproj"
+      xcodeproj: "#{Dir.pwd}/russ5.xcodeproj"
     )
     
-    # Build the app for TestFlight
+    # Build the app for App Store
+    UI.message("Building app for TestFlight...")
     gym(
-      project: "russ5.xcodeproj",
+      project: "#{Dir.pwd}/russ5.xcodeproj",
       scheme: "russ5",
       configuration: "Release",
       export_method: "app-store",
@@ -312,36 +139,35 @@ platform :ios do
         }
       },
       clean: true,
-      output_directory: "./build/ipa",
+      output_directory: "#{Dir.pwd}/build/ipa",
       output_name: "russ5.ipa"
     )
     
     # Upload to TestFlight
+    UI.message("Uploading to TestFlight...")
     pilot(
       api_key_path: api_key_path,
       skip_waiting_for_build_processing: true,
-      ipa: "./build/ipa/russ5.ipa"
+      ipa: "#{Dir.pwd}/build/ipa/russ5.ipa"
     )
     
-    UI.success("Successfully deployed new beta build to TestFlight!")
+    UI.success("Successfully deployed to TestFlight!")
   end
   
-  desc "Deploy a new release build to the App Store"
+  # Deploy to App Store
+  desc "Deploy to App Store"
   lane :release do
-    UI.message("Preparing release build for App Store...")
+    # Validate required environment variables
+    validate_required_env_vars
     
-    # Ensure we have the right certificates and profiles for app store distribution
-    begin
-      match(
-        type: "appstore",
-        app_identifier: ["xyz.russ.russ5", "xyz.russ.russ5.Extension"],
-        readonly: true,
-        verbose: true
-      )
-    rescue => e
-      UI.error("Failed to get certificates: #{e.message}")
-      UI.user_error!("Cannot continue without proper certificates")
-    end
+    # Get certificates and profiles for App Store
+    UI.message("Getting certificates and profiles for App Store...")
+    match(
+      type: "appstore",
+      app_identifier: ["xyz.russ.russ5", "xyz.russ.russ5.Extension"],
+      readonly: true,
+      verbose: true
+    )
     
     # Increment build number
     build_number = latest_testflight_build_number(
@@ -351,12 +177,13 @@ platform :ios do
     
     increment_build_number(
       build_number: build_number,
-      xcodeproj: "russ5.xcodeproj"
+      xcodeproj: "#{Dir.pwd}/russ5.xcodeproj"
     )
     
     # Build the app for App Store
+    UI.message("Building app for App Store...")
     gym(
-      project: "russ5.xcodeproj",
+      project: "#{Dir.pwd}/russ5.xcodeproj",
       scheme: "russ5",
       configuration: "Release",
       export_method: "app-store",
@@ -367,11 +194,12 @@ platform :ios do
         }
       },
       clean: true,
-      output_directory: "./build/ipa",
+      output_directory: "#{Dir.pwd}/build/ipa",
       output_name: "russ5.ipa"
     )
     
     # Upload to App Store
+    UI.message("Uploading to App Store...")
     deliver(
       api_key_path: api_key_path,
       skip_screenshots: true,
@@ -379,33 +207,69 @@ platform :ios do
       force: true,
       submit_for_review: true,
       automatic_release: true,
-      ipa: "./build/ipa/russ5.ipa"
+      ipa: "#{Dir.pwd}/build/ipa/russ5.ipa"
     )
     
-    UI.success("Successfully deployed new release build to the App Store!")
+    UI.success("Successfully deployed to App Store!")
+  end
+  
+  # Helper method to validate required environment variables
+  private_lane :validate_required_env_vars do
+    required_vars = [
+      "MATCH_PASSWORD",
+      "FASTLANE_APPLE_ID",
+      "TEAM_ID"
+    ]
+    
+    missing_vars = required_vars.select { |var| ENV[var].nil? || ENV[var].empty? }
+    
+    unless missing_vars.empty?
+      UI.user_error!("Missing required environment variables: #{missing_vars.join(', ')}")
+    end
+  end
+  
+  # Helper method to validate BrowserStack environment variables
+  private_lane :validate_browserstack_env_vars do
+    required_vars = [
+      "BROWSERSTACK_USERNAME",
+      "BROWSERSTACK_ACCESS_KEY",
+      "BROWSERSTACK_APP_ID"
+    ]
+    
+    missing_vars = required_vars.select { |var| ENV[var].nil? || ENV[var].empty? }
+    
+    unless missing_vars.empty?
+      UI.user_error!("Missing required BrowserStack environment variables: #{missing_vars.join(', ')}")
+    end
   end
   
   # Helper method to get the App Store Connect API key path
   def api_key_path
-    # Check if we have the API key content in environment variables
-    if ENV["APP_STORE_CONNECT_API_KEY_CONTENT"] && ENV["APP_STORE_CONNECT_API_KEY_ID"] && ENV["APP_STORE_CONNECT_API_KEY_ISSUER_ID"]
-      # Create a temporary file with the API key
-      api_key_path = "/tmp/app_store_connect_api_key.p8"
-      File.write(api_key_path, ENV["APP_STORE_CONNECT_API_KEY_CONTENT"])
-      
-      # Set up the App Store Connect API key
-      app_store_connect_api_key(
-        key_id: ENV["APP_STORE_CONNECT_API_KEY_ID"],
-        issuer_id: ENV["APP_STORE_CONNECT_API_KEY_ISSUER_ID"],
-        key_filepath: api_key_path,
-        duration: 1200, # 20 minutes
-        in_house: false
-      )
-      
-      return api_key_path
-    else
-      UI.important("App Store Connect API key environment variables not found. Using Apple ID authentication instead.")
-      return nil
+    required_vars = [
+      "APP_STORE_CONNECT_API_KEY_CONTENT",
+      "APP_STORE_CONNECT_API_KEY_ID",
+      "APP_STORE_CONNECT_API_KEY_ISSUER_ID"
+    ]
+    
+    missing_vars = required_vars.select { |var| ENV[var].nil? || ENV[var].empty? }
+    
+    unless missing_vars.empty?
+      UI.user_error!("Missing required App Store Connect API key variables: #{missing_vars.join(', ')}")
     end
+    
+    # Create a temporary file with the API key
+    api_key_path = "/tmp/app_store_connect_api_key.p8"
+    File.write(api_key_path, ENV["APP_STORE_CONNECT_API_KEY_CONTENT"])
+    
+    # Set up the App Store Connect API key
+    app_store_connect_api_key(
+      key_id: ENV["APP_STORE_CONNECT_API_KEY_ID"],
+      issuer_id: ENV["APP_STORE_CONNECT_API_KEY_ISSUER_ID"],
+      key_filepath: api_key_path,
+      duration: 1200, # 20 minutes
+      in_house: false
+    )
+    
+    return api_key_path
   end
 end

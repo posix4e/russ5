@@ -1,0 +1,217 @@
+name: Safari Extension Simplified CI/CD
+
+on:
+  push:
+    branches: [ main ]
+    tags:
+      - 'v*'  # Push events to matching v*, i.e. v1.0, v20.15.10
+  pull_request:
+    branches: [ main ]
+  # No workflow_dispatch with optional inputs - simplify to a single path
+
+env:
+  DEVELOPER_DIR: /Applications/Xcode_16.2.app
+  LC_ALL: en_US.UTF-8
+  LANG: en_US.UTF-8
+
+jobs:
+  validate_prerequisites:
+    name: Validate Prerequisites
+    runs-on: macos-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.2'
+          bundler-cache: true
+
+      - name: Validate required secrets
+        run: |
+          # Fail fast if any required secrets are missing
+          [ -n "${{ secrets.MATCH_PASSWORD }}" ] || { echo "::error::MATCH_PASSWORD is required"; exit 1; }
+          [ -n "${{ secrets.MATCH_GIT_URL }}" ] || { echo "::error::MATCH_GIT_URL is required"; exit 1; }
+          [ -n "${{ secrets.TEAM_ID }}" ] || { echo "::error::TEAM_ID is required"; exit 1; }
+          [ -n "${{ secrets.FASTLANE_APPLE_ID }}" ] || { echo "::error::FASTLANE_APPLE_ID is required"; exit 1; }
+          [ -n "${{ secrets.FASTLANE_APPLE_APPLICATION_SPECIFIC_PASSWORD }}" ] || { echo "::error::FASTLANE_APPLE_APPLICATION_SPECIFIC_PASSWORD is required"; exit 1; }
+          [ -n "${{ secrets.APP_STORE_CONNECT_API_KEY_CONTENT }}" ] || { echo "::error::APP_STORE_CONNECT_API_KEY_CONTENT is required"; exit 1; }
+          [ -n "${{ secrets.APP_STORE_CONNECT_API_KEY_ID }}" ] || { echo "::error::APP_STORE_CONNECT_API_KEY_ID is required"; exit 1; }
+          [ -n "${{ secrets.APP_STORE_CONNECT_API_KEY_ISSUER_ID }}" ] || { echo "::error::APP_STORE_CONNECT_API_KEY_ISSUER_ID is required"; exit 1; }
+          echo "All required secrets are present"
+
+      - name: Verify certificate access
+        env:
+          MATCH_PASSWORD: ${{ secrets.MATCH_PASSWORD }}
+          MATCH_GIT_URL: ${{ secrets.MATCH_GIT_URL }}
+          FASTLANE_APPLE_ID: ${{ secrets.FASTLANE_APPLE_ID }}
+          FASTLANE_APPLE_APPLICATION_SPECIFIC_PASSWORD: ${{ secrets.FASTLANE_APPLE_APPLICATION_SPECIFIC_PASSWORD }}
+          TEAM_ID: ${{ secrets.TEAM_ID }}
+        run: |
+          bundle exec fastlane verify_certificates
+          
+  build:
+    name: Build Safari Extension
+    needs: validate_prerequisites
+    runs-on: macos-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.2'
+          bundler-cache: true
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: |
+          npm ci
+          bundle install
+
+      - name: Build Safari Extension
+        env:
+          MATCH_PASSWORD: ${{ secrets.MATCH_PASSWORD }}
+          MATCH_GIT_URL: ${{ secrets.MATCH_GIT_URL }}
+          FASTLANE_APPLE_ID: ${{ secrets.FASTLANE_APPLE_ID }}
+          FASTLANE_APPLE_APPLICATION_SPECIFIC_PASSWORD: ${{ secrets.FASTLANE_APPLE_APPLICATION_SPECIFIC_PASSWORD }}
+          TEAM_ID: ${{ secrets.TEAM_ID }}
+          APP_STORE_CONNECT_API_KEY_CONTENT: ${{ secrets.APP_STORE_CONNECT_API_KEY_CONTENT }}
+          APP_STORE_CONNECT_API_KEY_ID: ${{ secrets.APP_STORE_CONNECT_API_KEY_ID }}
+          APP_STORE_CONNECT_API_KEY_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_API_KEY_ISSUER_ID }}
+        run: |
+          bundle exec fastlane build_extension
+      
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: safari-extension-build
+          path: |
+            build/ipa/*.ipa
+            build/logs/*.log
+          retention-days: 7
+
+  ui_tests:
+    name: Run UI Tests on BrowserStack
+    needs: build
+    runs-on: macos-latest
+    timeout-minutes: 30
+    # Only run if we have BrowserStack credentials
+    if: ${{ secrets.BROWSERSTACK_USERNAME != '' && secrets.BROWSERSTACK_ACCESS_KEY != '' && secrets.BROWSERSTACK_APP_ID != '' }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.2'
+          bundler-cache: true
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: |
+          npm ci
+          bundle install
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@v3
+        with:
+          name: safari-extension-build
+          path: build/
+
+      - name: Run UI Tests on BrowserStack
+        env:
+          MATCH_PASSWORD: ${{ secrets.MATCH_PASSWORD }}
+          MATCH_GIT_URL: ${{ secrets.MATCH_GIT_URL }}
+          BROWSERSTACK_USERNAME: ${{ secrets.BROWSERSTACK_USERNAME }}
+          BROWSERSTACK_ACCESS_KEY: ${{ secrets.BROWSERSTACK_ACCESS_KEY }}
+          BROWSERSTACK_APP_ID: ${{ secrets.BROWSERSTACK_APP_ID }}
+        run: |
+          bundle exec fastlane run_ui_tests
+
+  deploy_testflight:
+    name: Deploy to TestFlight
+    needs: [build, ui_tests]
+    runs-on: macos-latest
+    timeout-minutes: 30
+    # Only run on main branch or tags
+    if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v')
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.2'
+          bundler-cache: true
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@v3
+        with:
+          name: safari-extension-build
+          path: build/
+
+      - name: Deploy to TestFlight
+        env:
+          MATCH_PASSWORD: ${{ secrets.MATCH_PASSWORD }}
+          MATCH_GIT_URL: ${{ secrets.MATCH_GIT_URL }}
+          FASTLANE_APPLE_ID: ${{ secrets.FASTLANE_APPLE_ID }}
+          FASTLANE_APPLE_APPLICATION_SPECIFIC_PASSWORD: ${{ secrets.FASTLANE_APPLE_APPLICATION_SPECIFIC_PASSWORD }}
+          TEAM_ID: ${{ secrets.TEAM_ID }}
+          APP_STORE_CONNECT_API_KEY_CONTENT: ${{ secrets.APP_STORE_CONNECT_API_KEY_CONTENT }}
+          APP_STORE_CONNECT_API_KEY_ID: ${{ secrets.APP_STORE_CONNECT_API_KEY_ID }}
+          APP_STORE_CONNECT_API_KEY_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_API_KEY_ISSUER_ID }}
+        run: |
+          bundle exec fastlane beta
+
+  deploy_appstore:
+    name: Deploy to App Store
+    needs: [build, ui_tests, deploy_testflight]
+    runs-on: macos-latest
+    timeout-minutes: 30
+    # Only run on tags
+    if: startsWith(github.ref, 'refs/tags/v')
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.2'
+          bundler-cache: true
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@v3
+        with:
+          name: safari-extension-build
+          path: build/
+
+      - name: Deploy to App Store
+        env:
+          MATCH_PASSWORD: ${{ secrets.MATCH_PASSWORD }}
+          MATCH_GIT_URL: ${{ secrets.MATCH_GIT_URL }}
+          FASTLANE_APPLE_ID: ${{ secrets.FASTLANE_APPLE_ID }}
+          FASTLANE_APPLE_APPLICATION_SPECIFIC_PASSWORD: ${{ secrets.FASTLANE_APPLE_APPLICATION_SPECIFIC_PASSWORD }}
+          TEAM_ID: ${{ secrets.TEAM_ID }}
+          APP_STORE_CONNECT_API_KEY_CONTENT: ${{ secrets.APP_STORE_CONNECT_API_KEY_CONTENT }}
+          APP_STORE_CONNECT_API_KEY_ID: ${{ secrets.APP_STORE_CONNECT_API_KEY_ID }}
+          APP_STORE_CONNECT_API_KEY_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_API_KEY_ISSUER_ID }}
+        run: |
+          bundle exec fastlane release
