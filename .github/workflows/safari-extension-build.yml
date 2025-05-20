@@ -161,13 +161,7 @@ jobs:
         if-no-files-found: warn
         retention-days: 3
         
-    - name: Create BrowserStack Test Suite
-      run: |
-        echo "=== Creating BrowserStack Test Suite ==="
-        npm run browserstack-create-testsuite || {
-          echo "Failed to create BrowserStack test suite, but continuing with the workflow"
-          exit 0
-        }
+    # BrowserStack test suite is now created in the fastlane run_ui_tests lane
         
     - name: Upload BrowserStack Test Suite
       if: success()
