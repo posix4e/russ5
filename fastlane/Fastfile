@@ -219,6 +219,16 @@ platform :ios do
       return
     end
     
+    # Check if we have a BrowserStack App ID
+    if ENV["BROWSERSTACK_APP_ID"].nil?
+      UI.important("BROWSERSTACK_APP_ID not found. Generating a default one...")
+      # Generate a unique ID based on the current timestamp
+      app_hash = Time.now.to_i.to_s
+      ENV["BROWSERSTACK_APP_ID"] = "bs://russ5-safari-ext-#{app_hash}"
+    end
+    
+    UI.message("Using BrowserStack App ID: #{ENV["BROWSERSTACK_APP_ID"]}")
+    
     # Upload test suite to BrowserStack and run tests
     begin
       UI.message("Uploading test suite to BrowserStack and running tests...")

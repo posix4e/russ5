@@ -157,8 +157,22 @@ jobs:
         MATCH_PASSWORD: ${{ secrets.MATCH_PASSWORD }}
         BROWSERSTACK_USERNAME: ${{ secrets.BROWSERSTACK_USERNAME }}
         BROWSERSTACK_ACCESS_KEY: ${{ secrets.BROWSERSTACK_ACCESS_KEY }}
+        BROWSERSTACK_APP_ID: ${{ secrets.BROWSERSTACK_APP_ID || 'bs://auto-generated-app-id' }}
       run: |
         echo "=== Running UI Tests with BrowserStack ==="
+        
+        # If BROWSERSTACK_APP_ID is not set, generate one based on the build
+        if [ "$BROWSERSTACK_APP_ID" = "bs://auto-generated-app-id" ]; then
+          echo "BROWSERSTACK_APP_ID not provided in secrets, generating one..."
+          # Generate a unique ID based on the repository name and commit hash
+          REPO_NAME=$(echo "$GITHUB_REPOSITORY" | cut -d'/' -f2)
+          APP_HASH=$(echo "$GITHUB_SHA" | cut -c1-8)
+          export BROWSERSTACK_APP_ID="bs://${REPO_NAME}-${APP_HASH}"
+          echo "Generated BROWSERSTACK_APP_ID: $BROWSERSTACK_APP_ID"
+        else
+          echo "Using provided BROWSERSTACK_APP_ID from secrets"
+        fi
+        
         # Run UI tests using fastlane
         bundle exec fastlane run_ui_tests
         # Note: This will fail fast if there are issues with the build or test setup

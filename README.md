@@ -211,7 +211,7 @@ This project includes Fastlane lanes for building and testing the app on Browser
    export BROWSERSTACK_ACCESS_KEY="your_browserstack_access_key"
    
    # Optional: If you already have an app uploaded to BrowserStack, you can use its ID
-   # to skip the build and upload steps
+   # to skip the build and upload steps. If not provided, a unique ID will be generated.
    export BROWSERSTACK_APP_ID="bs://your_app_id"
    
    # Optional: Your test suite ID on BrowserStack (required for running tests)
@@ -221,6 +221,7 @@ This project includes Fastlane lanes for building and testing the app on Browser
 2. **For GitHub Actions**, add these secrets:
    - `BROWSERSTACK_USERNAME`: Your BrowserStack username
    - `BROWSERSTACK_ACCESS_KEY`: Your BrowserStack access key
+   - `BROWSERSTACK_APP_ID`: (Optional) Your BrowserStack app ID. If not provided, a unique ID will be generated automatically based on the repository name and commit hash.
 
 ### Available BrowserStack Lanes
 
