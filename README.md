@@ -1,6 +1,6 @@
 # Russ5 Safari Extension
 
-This repository contains a Safari extension with GitHub Actions and Fastlane integration for building and signing.
+This repository contains a Safari extension with GitHub Actions and Fastlane integration for building, testing, and deploying to TestFlight and the App Store.
 
 ## Setup Instructions
 
@@ -11,17 +11,38 @@ This repository contains a Safari extension with GitHub Actions and Fastlane int
 - Ruby 3.2 or later (for Fastlane)
 - Apple Developer Account
 
+### CI/CD Pipeline Overview
+
+The GitHub Actions workflow is configured to provide a complete CI/CD pipeline for the Safari extension:
+
+1. **Build & Test**: Builds the Safari extension and runs UI tests
+2. **TestFlight Deployment**: Deploys the app to TestFlight for beta testing
+3. **App Store Deployment**: Deploys the app to the App Store for release
+
+The pipeline is triggered by:
+- Push to main branch
+- Pull requests to main branch
+- Tags starting with 'v' (e.g., v1.0.0)
+- Manual workflow dispatch
+
 ### GitHub Actions Setup
 
-The GitHub Actions workflow is configured to build the Safari extension using either Fastlane or xcodebuild. To make it work with code signing, you need to add the following secrets to your GitHub repository:
+To make the CI/CD pipeline work with code signing and deployment, you need to add the following secrets to your GitHub repository:
 
 #### Required Secrets
 
 - `TEAM_ID`: Your Apple Developer Team ID
 - `FASTLANE_APPLE_ID`: Your Apple ID email
 - `FASTLANE_APPLE_APPLICATION_SPECIFIC_PASSWORD`: App-specific password for your Apple ID
-- `PROVISIONING_PROFILE_SPECIFIER`: Name of the provisioning profile for the main app
-- `EXTENSION_PROVISIONING_PROFILE_SPECIFIER`: Name of the provisioning profile for the extension
+- `SSH_KEY`: Base64-encoded SSH private key for accessing the match repository
+- `MATCH_GIT_URL`: URL of your match repository
+- `MATCH_PASSWORD`: Password for the match repository
+
+#### Optional Secrets (for App Store Connect API)
+
+- `APP_STORE_CONNECT_API_KEY_ID`: Your App Store Connect API Key ID
+- `APP_STORE_CONNECT_API_KEY_ISSUER_ID`: Your App Store Connect API Key Issuer ID
+- `APP_STORE_CONNECT_API_KEY_CONTENT`: Your App Store Connect API Key content
 
 #### Optional Secrets (for manual signing)
 
@@ -29,7 +50,6 @@ The GitHub Actions workflow is configured to build the Safari extension using ei
 - `CERTIFICATE_PASSWORD`: Password for the p12 certificate
 - `PROVISIONING_PROFILE_BASE64`: Base64-encoded provisioning profile for the main app
 - `PROVISIONING_PROFILE_EXTENSION_BASE64`: Base64-encoded provisioning profile for the extension
-- `MATCH_PASSWORD`: Password for the match repository (if using match)
 - `KEYCHAIN_PASSWORD`: Password for the temporary keychain (defaults to 'temporary_password')
 
 ### Generating Base64-encoded Certificates and Profiles
@@ -455,6 +475,15 @@ npm run lane:build_manual
 
 # Run the setup_profiles lane (to sync profiles)
 npm run lane:setup_profiles
+
+# Run UI tests
+npm run run-ui-tests
+
+# Deploy to TestFlight
+npm run deploy-beta
+
+# Deploy to App Store
+npm run deploy-release
 ```
 
 #### Utility Commands
@@ -468,4 +497,56 @@ npm run match-sync
 
 # Test the full workflow (sync profiles and build)
 npm run match-test
+
+# Run the complete CI pipeline (build, test, package)
+npm run ci-full
 ```
+
+### CI/CD Pipeline Details
+
+#### Build and Test Job
+
+The first job in the CI/CD pipeline builds the Safari extension and runs UI tests:
+
+1. **Build**: Uses Fastlane to build the Safari extension
+2. **UI Tests**: Runs the UI tests using the `run_ui_tests` lane
+3. **BrowserStack**: Creates a test suite for BrowserStack testing
+4. **Artifacts**: Uploads build artifacts and test results
+
+#### TestFlight Deployment Job
+
+The TestFlight deployment job is triggered when:
+- A tag starting with 'v' is pushed (e.g., v1.0.0)
+- The workflow is manually triggered with the "Deploy to TestFlight" option
+
+This job:
+1. Downloads the build artifacts from the Build and Test job
+2. Uses Fastlane Match to get the required certificates and profiles
+3. Builds the app for TestFlight distribution
+4. Uploads the app to TestFlight
+
+#### App Store Deployment Job
+
+The App Store deployment job is triggered when:
+- A tag starting with 'v' is pushed (e.g., v1.0.0)
+- The workflow is manually triggered with the "Deploy to App Store" option
+
+This job:
+1. Downloads the build artifacts from the Build and Test job
+2. Uses Fastlane Match to get the required certificates and profiles
+3. Builds the app for App Store distribution
+4. Uploads the app to the App Store
+5. Submits the app for review (optional)
+
+### Manually Triggering Deployments
+
+You can manually trigger the CI/CD pipeline from the GitHub Actions tab:
+
+1. Go to the "Actions" tab in your GitHub repository
+2. Select the "Safari Extension CI/CD Pipeline" workflow
+3. Click "Run workflow"
+4. Choose the branch to run the workflow on
+5. Select whether to deploy to TestFlight and/or App Store
+6. Click "Run workflow"
+
+This allows you to deploy to TestFlight or the App Store without creating a new tag.
