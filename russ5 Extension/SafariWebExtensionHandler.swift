@@ -37,9 +37,16 @@ class SafariWebExtensionHandler: NSObject, NSExtensionRequestHandling {
             case "logHistory":
                 if let urlString = messageDict["url"] as? String, let url = URL(string: urlString) {
                     let title = messageDict["title"] as? String
-                    HistoryDatabase.shared.addHistoryItem(url: url, title: title)
+                    let pageDescription = messageDict["description"] as? String
+                    let previewImageURLString = messageDict["previewImageURL"] as? String
+                    let previewImageURL = URL(string: previewImageURLString ?? "")
+                    let faviconURLString = messageDict["faviconURL"] as? String
+                    let faviconURL = URL(string: faviconURLString ?? "")
+                    let articleText = messageDict["articleText"] as? String
+
+                    HistoryDatabase.shared.addHistoryItem(url: url, title: title, pageDescription: pageDescription, previewImageURL: previewImageURL, faviconURL: faviconURL, articleText: articleText)
                     responseMessage = ["status": "success", "action": "logHistory"]
-                    os_log(.default, "Logged history for URL: %@", urlString)
+                    os_log(.default, "Logged history for URL: %@. Article text length: %d", urlString, articleText?.count ?? 0)
                 } else {
                     responseMessage = ["status": "error", "message": "Invalid URL for logHistory"]
                     os_log(.error, "Failed to log history: Invalid URL")
@@ -47,7 +54,7 @@ class SafariWebExtensionHandler: NSObject, NSExtensionRequestHandling {
             case "getHistory":
                 let historyItems = HistoryDatabase.shared.getHistory()
                 let encoder = JSONEncoder()
-                encoder.dateEncodingStrategy = .iso8601 
+                encoder.dateEncodingStrategy = .iso8601
                 if let historyData = try? encoder.encode(historyItems),
                    let historyJSON = try? JSONSerialization.jsonObject(with: historyData, options: []) {
                     responseMessage = ["status": "success", "action": "getHistory", "history": historyJSON]

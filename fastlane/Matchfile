@@ -1,0 +1,39 @@
+# Simplified Matchfile for SSH-based authentication
+
+# The URL of your private certificates repository (SSH format)
+git_url(ENV["MATCH_GIT_URL"])
+
+# Always use git storage mode
+storage_mode("git")
+
+# Disable basic auth since we're using SSH
+git_basic_authorization(nil)
+
+# Use SSH private key for authentication
+git_private_key("~/.ssh/id_ed25519")
+
+# Always enable verbose mode for better debugging
+verbose(true)
+
+# The default type is development
+type("development")
+
+# App identifiers to include in the provisioning profile
+app_identifier(["xyz.russ.russ5", "xyz.russ.russ5.Extension"])
+
+# Your Apple Developer Portal username
+username(ENV["FASTLANE_APPLE_ID"])
+
+# Team ID from the Apple Developer Portal
+team_id(ENV["TEAM_ID"])
+
+# Always use readonly mode in CI to prevent accidental certificate creation
+readonly(true)
+
+# Skip confirmation prompts in CI
+skip_confirmation(true)
+
+# Skip docs generation to speed up the process
+skip_docs(true)
+
+# The docs are available on https://docs.fastlane.tools/actions/match/

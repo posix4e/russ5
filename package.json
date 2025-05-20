@@ -1,0 +1,81 @@
+{
+  "name": "russ5",
+  "version": "1.0.0",
+  "description": "Safari extension build and verification",
+  "scripts": {
+    "create-dirs": "mkdir -p ./logs ./dist",
+    "print-env": "node -e \"const fs=require('fs');const {execSync}=require('child_process');const log='./logs/environment.log';fs.writeFileSync(log,'=== Environment Information ===\\n');fs.appendFileSync(log,'macOS Version:\\n'+execSync('sw_vers',{encoding:'utf8'})+'\\n');fs.appendFileSync(log,'Xcode Version:\\n'+execSync('xcodebuild -version',{encoding:'utf8'})+'\\n');try{fs.appendFileSync(log,'Available schemes:\\n'+execSync('xcodebuild -list -project russ5.xcodeproj',{encoding:'utf8'})+'\\n');}catch(e){fs.appendFileSync(log,'Error getting schemes: '+e.message+'\\n');}\"",
+    "validate-js": "node ./scripts/validate-js.js",
+    "setup-signing": "node ./scripts/setup-signing.js",
+    "build-xcode": "node -e \"const {execSync}=require('child_process');try{console.log('Building main app...');execSync('xcodebuild -project russ5.xcodeproj -scheme \\'russ5\\' -configuration Debug -allowProvisioningUpdates clean build | tee ./logs/build.log',{stdio:'inherit'});}catch(e){console.log('❌ Main app build failed, trying extension only...');execSync('xcodebuild -project russ5.xcodeproj -scheme \\'russ5 Extension\\' -configuration Debug -allowProvisioningUpdates clean build | tee ./logs/extension_build.log',{stdio:'inherit'});}\"",
+    "build-fastlane": "node -e \"const {execSync}=require('child_process');try{if(process.env.MATCH_PASSWORD && process.env.MATCH_GIT_URL){console.log('Building with fastlane match...');execSync('npm run lane:build_dev',{stdio:'inherit'});}else{console.log('Building with fastlane manual signing...');execSync('npm run lane:build_manual',{stdio:'inherit'});}}catch(e){console.error('❌ Fastlane build failed:',e.message);process.exit(1);}\"",
+    "build": "npm run build-xcode",
+    "verify-build": "node ./scripts/verify-extension.js",
+    "create-summary": "node ./scripts/create-summary.js",
+    "package-extension": "node -e \"const fs=require('fs');const path=require('path');const {execSync}=require('child_process');try{const findCmd='find ~/Library/Developer/Xcode/DerivedData -path \\'*/Build/Products/Debug/*.appex\\' -type d | head -1';const extensionPath=execSync(findCmd,{encoding:'utf8'}).trim();if(!extensionPath){throw new Error('Extension not found');}console.log('Found extension at:',extensionPath);execSync(`cp -R '${extensionPath}' ./dist/`,{stdio:'inherit'});process.chdir('./dist');execSync('zip -r safari-extension.zip *.appex',{stdio:'inherit'});process.chdir('..');console.log('✅ Extension packaged at ./dist/safari-extension.zip');}catch(e){console.error('❌ Could not find or package extension:',e.message);execSync('find ~/Library/Developer/Xcode/DerivedData -path \\'*/Build/Products/Debug/*\\' -type d',{stdio:'inherit'});process.exit(1);}\"",
+    "encode-certificates": "node ./scripts/encode-certificates.js",
+    "ci": "npm run create-dirs && npm run print-env && npm run setup-signing && npm run validate-js && npm run build && npm run verify-build && npm run create-summary && npm run package-extension",
+    "ci-fastlane": "npm run load-env && npm run create-dirs && npm run print-env && npm run setup-signing && npm run build-fastlane && npm run verify-build && npm run create-summary && npm run package-extension",
+    "ci-simple": "npm run load-env && npm run create-dirs && npm run print-env && npm run test-git-ssh && npm run match:simple",
+    "precommit": "npm run validate-js",
+    
+    "fastlane": "fastlane",
+    
+    "match:development": "GIT_SSH_COMMAND=\"ssh -i ~/.ssh/id_ed25519 -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new\" fastlane match development --app_identifier xyz.russ.russ5,xyz.russ.russ5.Extension --readonly --verbose",
+    "match:verify": "GIT_SSH_COMMAND=\"ssh -i ~/.ssh/id_ed25519 -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new -v\" fastlane verify_ssh",
+    "match:simple": "GIT_SSH_COMMAND=\"ssh -i ~/.ssh/id_ed25519 -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new\" fastlane build_simple",
+    "match:appstore": "fastlane match appstore --app_identifier xyz.russ.russ5,xyz.russ.russ5.Extension",
+    "match:adhoc": "fastlane match adhoc --app_identifier xyz.russ.russ5,xyz.russ.russ5.Extension",
+    
+    "lane:build_dev": "fastlane build_dev",
+    "lane:build_dev_alt": "fastlane build_dev_alt",
+    "lane:build_manual": "fastlane build_manual",
+    "lane:setup_profiles": "fastlane setup_profiles",
+    "lane:browserstack": "fastlane browserstack",
+    "lane:browserstack_test": "fastlane browserstack_test",
+    "lane:browserstack_build_and_test": "fastlane browserstack_build_and_test",
+    "lane:run_ui_tests": "fastlane run_ui_tests",
+    "lane:beta": "fastlane beta",
+    "lane:release": "fastlane release",
+    
+    "load-env": "node -e \"const fs=require('fs');const path=require('path');const envPath=path.resolve(process.cwd(),'.env');if(fs.existsSync(envPath)){console.log('Loading environment variables from .env file...');const envContent=fs.readFileSync(envPath,'utf8');const envVars=envContent.split('\\n').filter(line=>line.trim()&&!line.startsWith('#')).map(line=>line.split('=',2)).reduce((acc,[key,value])=>{if(key&&value){acc[key.trim()]=value.trim();}return acc;},{});Object.entries(envVars).forEach(([key,value])=>{process.env[key]=value;console.log(`Set ${key}=${value.substring(0,3)}${'*'.repeat(Math.max(0,value.length-3))}`);})}else{console.log('.env file not found, using existing environment variables.');}\"",
+    
+    "match-sync": "npm run load-env && npm run match:development",
+    "convert-git-url": "npm run load-env && node ./scripts/convert-git-url.js",
+    "test-ssh-key": "npm run load-env && npm run convert-git-url && node ./scripts/test-ssh-key.js",
+    "debug-ssh": "npm run load-env && node ./scripts/debug-ssh.js",
+    "test-git-ssh": "npm run load-env && npm run convert-git-url && node ./scripts/test-git-ssh.js",
+    "match-test": "npm run load-env && npm run test-ssh-key && node -e \"const {execSync}=require('child_process');console.log('Testing with:\\nTEAM_ID: ' + process.env.TEAM_ID + '\\nFASTLANE_APPLE_ID: ' + process.env.FASTLANE_APPLE_ID + '\\nMATCH_GIT_URL: ' + process.env.MATCH_GIT_URL);try{console.log('\\nRunning match development...');execSync('npm run match:development',{stdio:'inherit'});console.log('\\nRunning build_dev lane...');execSync('npm run lane:build_dev',{stdio:'inherit'});}catch(e){console.log('\\nFirst approach failed, trying alternative approach...');try{execSync('npm run lane:build_dev_alt',{stdio:'inherit'});}catch(e2){console.error('\\n❌ Both approaches failed. Error:',e2.message);process.exit(1);}}console.log('\\n✅ Test completed!');\"}",
+    
+    "browserstack-upload": "npm run load-env && npm run lane:browserstack",
+    "browserstack-test": "npm run load-env && npm run lane:browserstack_test",
+    "browserstack-build-and-test": "npm run load-env && npm run lane:browserstack_build_and_test",
+    "ci-browserstack": "npm run load-env && npm run create-dirs && npm run print-env && npm run setup-signing && npm run validate-js && npm run browserstack-build-and-test && npm run create-summary",
+    
+    "browserstack-create-testsuite": "node ./scripts/create-browserstack-test-suite.js",
+    "browserstack-create-testsuite-no-runner": "node ./scripts/create-browserstack-test-suite.js --skip-runner",
+    "browserstack-upload-testsuite": "npm run load-env && node ./scripts/browserstack-upload-testsuite.js",
+    "browserstack-run-tests": "npm run load-env && node ./scripts/browserstack-run-tests.js",
+    "browserstack-check-results": "npm run load-env && node ./scripts/browserstack-check-results.js",
+    
+    "run-ui-tests": "npm run load-env && npm run lane:run_ui_tests",
+    "deploy-beta": "npm run load-env && npm run lane:beta",
+    "deploy-release": "npm run load-env && npm run lane:release",
+    
+    "ci-full": "npm run load-env && npm run create-dirs && npm run print-env && npm run setup-signing && npm run validate-js && npm run build-fastlane && npm run run-ui-tests && npm run verify-build && npm run create-summary && npm run package-extension"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/posix4e/russ5.git"
+  },
+  "keywords": [
+    "safari",
+    "extension"
+  ],
+  "author": "",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/posix4e/russ5/issues"
+  },
+  "homepage": "https://github.com/posix4e/russ5#readme"
+}
