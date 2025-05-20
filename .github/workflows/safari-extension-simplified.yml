@@ -151,7 +151,7 @@ jobs:
     runs-on: macos-latest
     timeout-minutes: 30
     # Only run if we have BrowserStack credentials
-    if: ${{ secrets.BROWSERSTACK_USERNAME != '' && secrets.BROWSERSTACK_ACCESS_KEY != '' && secrets.BROWSERSTACK_APP_ID != '' }}
+    if: ${{ secrets.BROWSERSTACK_USERNAME != '' }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
