@@ -137,19 +137,17 @@ jobs:
           fi
         }
 
-    - name: Run UI Tests
+    - name: Run UI Tests with BrowserStack
       env:
         TEAM_ID: ${{ secrets.TEAM_ID }}
         FASTLANE_APPLE_ID: ${{ secrets.FASTLANE_APPLE_ID }}
+        BROWSERSTACK_USERNAME: ${{ secrets.BROWSERSTACK_USERNAME }}
+        BROWSERSTACK_ACCESS_KEY: ${{ secrets.BROWSERSTACK_ACCESS_KEY }}
       run: |
-        echo "=== Running UI Tests ==="
+        echo "=== Running UI Tests with BrowserStack ==="
         # Run UI tests using fastlane
-        bundle exec fastlane run_ui_tests || {
-          echo "UI tests failed, but continuing with the workflow"
-          echo "This is expected in CI environment without proper simulator setup"
-          # Don't fail the build if UI tests fail in CI
-          exit 0
-        }
+        bundle exec fastlane run_ui_tests
+        # Note: This will fail fast if there are issues with the build or test setup
 
     - name: Upload build artifacts
       if: always()

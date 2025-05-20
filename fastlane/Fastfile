@@ -153,12 +153,12 @@ platform :ios do
     UI.success("Build process completed!")
   end
   
-  desc "Run UI Tests"
+  desc "Run UI Tests with BrowserStack"
   lane :run_ui_tests do
-    UI.message("Running UI Tests...")
+    UI.message("Running UI Tests with BrowserStack...")
     
     # Create build directories if they don't exist
-    sh("mkdir -p ./build/logs ./build/derived")
+    sh("mkdir -p ./build/logs ./build/derived ./build/test_results")
     
     # First, ensure we have the right certificates and profiles
     begin
@@ -170,55 +170,50 @@ platform :ios do
       )
     rescue => e
       UI.error("Failed to get certificates: #{e.message}")
-      UI.message("Continuing with UI tests anyway...")
+      UI.user_error!("Cannot continue without proper certificates")
     end
     
-    # Run the UI tests
-    begin
-      # Run the UI tests using xcodebuild
-      UI.message("Running UI tests with xcodebuild...")
-      xcodebuild(
-        project: "russ5.xcodeproj",
-        scheme: "russ5UITests",
-        destination: "platform=iOS Simulator,name=iPhone 15",
-        configuration: "Debug",
-        buildlog_path: "./build/logs",
-        derivedDataPath: "./build/derived",
-        xcargs: "-allowProvisioningUpdates"
-      )
-      UI.success("UI tests completed successfully!")
-    rescue => e
-      UI.error("UI tests failed: #{e.message}")
-      
-      # Try running a simpler test that just launches the app
-      UI.message("Trying a simpler test that just launches the app...")
-      begin
-        # Run just the launch test
-        xcodebuild(
-          project: "russ5.xcodeproj",
-          scheme: "russ5UITests",
-          destination: "platform=iOS Simulator,name=iPhone 15",
-          configuration: "Debug",
-          buildlog_path: "./build/logs",
-          derivedDataPath: "./build/derived",
-          xcargs: "-allowProvisioningUpdates -only-testing:russ5UITests/russ5UITestsLaunchTests/testLaunch"
-        )
-        UI.success("Launch test completed successfully!")
-      rescue => e2
-        UI.error("Launch test also failed: #{e2.message}")
-        
-        # Create a mock test result for CI
-        UI.message("Creating mock test results for CI...")
-        sh("mkdir -p ./build/logs/test_results", log: true)
-        sh("echo 'Mock UI test results' > ./build/logs/test_results/results.log", log: true)
-        
-        # Don't fail the lane, just report the issue
-        UI.important("UI tests could not be run in this environment. This is expected in CI.")
-      end
+    # Verify the extension builds correctly - fail fast if build fails
+    UI.message("Verifying extension build...")
+    xcodebuild(
+      project: "russ5.xcodeproj",
+      scheme: "russ5 Extension",
+      configuration: "Debug",
+      clean: true,
+      build: true,
+      xcargs: "-allowProvisioningUpdates",
+      buildlog_path: "./build/logs",
+      derivedDataPath: "./build/derived"
+    )
+    UI.success("Extension build verification successful!")
+    
+    # Create BrowserStack test suite
+    UI.message("Creating BrowserStack test suite...")
+    sh("mkdir -p ./dist", log: true)
+    sh("node ./scripts/create-browserstack-test-suite.js", log: true)
+    
+    # Verify test suite was created
+    if !File.exist?("./dist/test-suite.zip")
+      UI.user_error!("Failed to create BrowserStack test suite")
+    end
+    UI.success("BrowserStack test suite created successfully!")
+    
+    # Check if we have BrowserStack credentials
+    if ENV["BROWSERSTACK_USERNAME"].nil? || ENV["BROWSERSTACK_ACCESS_KEY"].nil?
+      UI.important("BrowserStack credentials not found. Skipping test execution.")
+      UI.important("To run tests on BrowserStack, set BROWSERSTACK_USERNAME and BROWSERSTACK_ACCESS_KEY environment variables.")
+      return
     end
     
-    # Log test completion
-    UI.message("UI test process completed!")
+    # Upload test suite to BrowserStack and run tests
+    UI.message("Uploading test suite to BrowserStack and running tests...")
+    sh("npm run browserstack-upload-testsuite", log: true)
+    sh("npm run browserstack-run-tests", log: true)
+    UI.success("BrowserStack tests started successfully!")
+    
+    # Check test results
+    sh("npm run browserstack-check-results", log: true)
+    UI.success("BrowserStack tests completed successfully!")
   end
   
   desc "Deploy a new beta build to TestFlight"
