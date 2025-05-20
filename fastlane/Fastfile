@@ -7,26 +7,62 @@ platform :ios do
     # Validate required environment variables
     validate_required_env_vars
     
+    # Log environment information
+    UI.message("Environment information:")
+    UI.message("TEAM_ID: #{ENV['TEAM_ID']}")
+    UI.message("MATCH_GIT_URL: #{ENV['MATCH_GIT_URL'] ? ENV['MATCH_GIT_URL'][0..15] + '...' : 'Not set'}")
+    UI.message("FASTLANE_APPLE_ID: #{ENV['FASTLANE_APPLE_ID'] ? ENV['FASTLANE_APPLE_ID'][0..5] + '...' : 'Not set'}")
+    
+    # Log Xcode information
+    UI.message("Xcode information:")
+    sh("xcodebuild -version", log: true)
+    
+    # Log project information
+    UI.message("Project information:")
+    begin
+      sh("xcodebuild -project #{Dir.pwd}/russ5.xcodeproj -list", log: true)
+    rescue => e
+      UI.error("Failed to list project information: #{e.message}")
+      UI.message("Checking if project exists:")
+      sh("ls -la #{Dir.pwd}", log: true)
+      sh("find #{Dir.pwd} -name '*.xcodeproj'", log: true)
+    end
+    
     # Verify access to certificates repository
     UI.message("Verifying access to certificates repository...")
     
     # Use match to verify access to certificates
-    match(
-      type: "development",
-      app_identifier: ["xyz.russ.russ5", "xyz.russ.russ5.Extension"],
-      readonly: true,
-      verbose: true
-    )
-    
-    # Also verify appstore certificates
-    match(
-      type: "appstore",
-      app_identifier: ["xyz.russ.russ5", "xyz.russ.russ5.Extension"],
-      readonly: true,
-      verbose: true
-    )
-    
-    UI.success("Successfully verified access to certificates repository!")
+    begin
+      UI.message("Checking development certificates...")
+      match(
+        type: "development",
+        app_identifier: ["xyz.russ.russ5", "xyz.russ.russ5.Extension"],
+        readonly: true,
+        verbose: true
+      )
+      
+      # Also verify appstore certificates
+      UI.message("Checking App Store certificates...")
+      match(
+        type: "appstore",
+        app_identifier: ["xyz.russ.russ5", "xyz.russ.russ5.Extension"],
+        readonly: true,
+        verbose: true
+      )
+      
+      UI.success("Successfully verified access to certificates repository!")
+    rescue => e
+      UI.error("Certificate verification failed: #{e.message}")
+      UI.error("Full error: #{e.backtrace.join("\n")}")
+      
+      # Check if keychain is accessible
+      UI.message("Checking keychain access:")
+      sh("security list-keychains", log: true)
+      sh("security find-identity -v -p codesigning || echo 'No certificates found'", log: true)
+      
+      # Re-raise the error to fail the lane
+      raise e
+    end
   end
   
   # Build the Safari extension
@@ -38,36 +74,89 @@ platform :ios do
     # Create build directories with absolute paths
     sh("mkdir -p #{Dir.pwd}/build/logs #{Dir.pwd}/build/derived #{Dir.pwd}/build/ipa")
     
+    # Log build environment
+    UI.message("Build environment:")
+    UI.message("Working directory: #{Dir.pwd}")
+    UI.message("Xcode path: #{ENV['DEVELOPER_DIR'] || 'Not set'}")
+    
+    # Check project existence
+    UI.message("Checking project existence:")
+    project_path = "#{Dir.pwd}/russ5.xcodeproj"
+    if File.directory?(project_path)
+      UI.success("Project exists at: #{project_path}")
+    else
+      UI.error("Project not found at: #{project_path}")
+      UI.message("Searching for Xcode projects:")
+      sh("find #{Dir.pwd} -name '*.xcodeproj'", log: true)
+      UI.user_error!("Cannot continue without project")
+    end
+    
     # Get certificates and profiles
     UI.message("Getting certificates and profiles...")
-    match(
-      type: "development",
-      app_identifier: ["xyz.russ.russ5", "xyz.russ.russ5.Extension"],
-      readonly: true,
-      verbose: true
-    )
+    begin
+      match(
+        type: "development",
+        app_identifier: ["xyz.russ.russ5", "xyz.russ.russ5.Extension"],
+        readonly: true,
+        verbose: true
+      )
+    rescue => e
+      UI.error("Failed to get certificates: #{e.message}")
+      UI.error("Full error: #{e.backtrace.join("\n")}")
+      
+      # Check keychain status
+      UI.message("Checking keychain status:")
+      sh("security list-keychains", log: true)
+      sh("security find-identity -v -p codesigning || echo 'No certificates found'", log: true)
+      
+      UI.user_error!("Cannot continue without proper certificates")
+    end
+    
+    # Check if provisioning profiles exist
+    UI.message("Checking provisioning profiles:")
+    sh("ls -la ~/Library/MobileDevice/Provisioning\\ Profiles/ || echo 'No provisioning profiles directory'", log: true)
     
     # Build the app for development
     UI.message("Building Safari extension...")
-    gym(
-      project: "#{Dir.pwd}/russ5.xcodeproj",
-      scheme: "russ5",
-      configuration: "Debug",
-      export_method: "development",
-      export_options: {
-        provisioningProfiles: {
-          "xyz.russ.russ5": "match Development xyz.russ.russ5",
-          "xyz.russ.russ5.Extension": "match Development xyz.russ.russ5.Extension"
-        }
-      },
-      clean: true,
-      output_directory: "#{Dir.pwd}/build/ipa",
-      output_name: "russ5-debug.ipa",
-      include_symbols: true,
-      include_bitcode: false
-    )
-    
-    UI.success("Successfully built Safari extension!")
+    begin
+      gym(
+        project: project_path,
+        scheme: "russ5",
+        configuration: "Debug",
+        export_method: "development",
+        export_options: {
+          provisioningProfiles: {
+            "xyz.russ.russ5": "match Development xyz.russ.russ5",
+            "xyz.russ.russ5.Extension": "match Development xyz.russ.russ5.Extension"
+          }
+        },
+        clean: true,
+        output_directory: "#{Dir.pwd}/build/ipa",
+        output_name: "russ5-debug.ipa",
+        include_symbols: true,
+        include_bitcode: false,
+        buildlog_path: "#{Dir.pwd}/build/logs",
+        xcargs: "DEVELOPMENT_TEAM=#{ENV['TEAM_ID']}"
+      )
+      
+      UI.success("Successfully built Safari extension!")
+    rescue => e
+      UI.error("Build failed: #{e.message}")
+      UI.error("Full error: #{e.backtrace.join("\n")}")
+      
+      # Try to get more build information
+      UI.message("Checking build logs:")
+      sh("find #{Dir.pwd}/build/logs -type f -name '*.log' | xargs ls -la", log: true)
+      sh("find #{Dir.pwd}/build/logs -type f -name '*.log' | xargs tail -n 50", log: true)
+      
+      # Check for specific errors
+      UI.message("Checking for common errors:")
+      sh("find #{Dir.pwd}/build/logs -type f -name '*.log' | xargs grep -i 'error:' || echo 'No specific errors found'", log: true)
+      sh("find #{Dir.pwd}/build/logs -type f -name '*.log' | xargs grep -i 'no profiles' || echo 'No profile issues found'", log: true)
+      sh("find #{Dir.pwd}/build/logs -type f -name '*.log' | xargs grep -i 'no accounts' || echo 'No account issues found'", log: true)
+      
+      UI.user_error!("Build failed - cannot continue")
+    end
   end
   
   # Run UI tests on BrowserStack
