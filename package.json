@@ -5,6 +5,7 @@
   "scripts": {
     "create-dirs": "mkdir -p ./logs ./dist ./build/ipa ./build/logs",
     "validate-js": "node ./scripts/validate-js.js",
+    "mock-validate-js": "node ./scripts/mock-validate-js.js",
     
     "verify-certificates": "bundle exec fastlane verify_certificates",
     "build-extension": "bundle exec fastlane build_extension",
@@ -21,6 +22,7 @@
     "ci-test": "npm run ci && npm run run-ui-tests",
     "ci-deploy": "npm run ci-test && npm run deploy-testflight",
     "ci-release": "npm run ci-deploy && npm run deploy-appstore",
+    "ci-mock": "npm run create-dirs && npm run mock-validate-js",
     
     "load-env": "node -e \"const fs=require('fs');const path=require('path');const envPath=path.resolve(process.cwd(),'.env');if(fs.existsSync(envPath)){console.log('Loading environment variables from .env file...');const envContent=fs.readFileSync(envPath,'utf8');const envVars=envContent.split('\\n').filter(line=>line.trim()&&!line.startsWith('#')).map(line=>line.split('=',2)).reduce((acc,[key,value])=>{if(key&&value){acc[key.trim()]=value.trim();}return acc;},{});Object.entries(envVars).forEach(([key,value])=>{process.env[key]=value;console.log(`Set ${key}=${value.substring(0,3)}${'*'.repeat(Math.max(0,value.length-3))}`);})}else{console.log('.env file not found, using existing environment variables.');}\""
   },
