@@ -221,10 +221,36 @@ platform :ios do
     
     # Check if we have a BrowserStack App ID
     if ENV["BROWSERSTACK_APP_ID"].nil?
-      UI.important("BROWSERSTACK_APP_ID not found. Generating a default one...")
-      # Generate a unique ID based on the current timestamp
-      app_hash = Time.now.to_i.to_s
-      ENV["BROWSERSTACK_APP_ID"] = "bs://russ5-safari-ext-#{app_hash}"
+      UI.important("BROWSERSTACK_APP_ID not found. Will need to build and upload the app to BrowserStack first.")
+      
+      # Build the app for BrowserStack testing
+      UI.message("Building app for BrowserStack testing...")
+      build_app(
+        project: "russ5.xcodeproj",
+        scheme: "russ5",
+        configuration: "Debug",
+        export_method: "development",
+        clean: true,
+        output_directory: "./build/ipa",
+        output_name: "russ5-browserstack.ipa"
+      )
+      
+      # Upload to BrowserStack and get the app ID
+      UI.message("Uploading app to BrowserStack...")
+      upload_to_browserstack_app_automate(
+        browserstack_username: ENV["BROWSERSTACK_USERNAME"],
+        browserstack_access_key: ENV["BROWSERSTACK_ACCESS_KEY"],
+        file_path: "./build/ipa/russ5-browserstack.ipa"
+      )
+      
+      # The upload_to_browserstack_app_automate action should set the BROWSERSTACK_APP_ID environment variable
+      if ENV["BROWSERSTACK_APP_ID"].nil?
+        UI.user_error!("Failed to get BROWSERSTACK_APP_ID after upload - fast fail approach")
+      end
+      
+      UI.success("App uploaded to BrowserStack successfully!")
+      UI.important("For future runs, add this app ID as a GitHub secret for faster testing:")
+      UI.important("BROWSERSTACK_APP_ID=#{ENV["BROWSERSTACK_APP_ID"]}")
     end
     
     UI.message("Using BrowserStack App ID: #{ENV["BROWSERSTACK_APP_ID"]}")

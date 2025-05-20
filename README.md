@@ -211,7 +211,8 @@ This project includes Fastlane lanes for building and testing the app on Browser
    export BROWSERSTACK_ACCESS_KEY="your_browserstack_access_key"
    
    # Optional: If you already have an app uploaded to BrowserStack, you can use its ID
-   # to skip the build and upload steps. If not provided, a unique ID will be generated.
+   # to skip the build and upload steps. If not provided, the app will be built and uploaded
+   # to BrowserStack first, which will take additional time.
    export BROWSERSTACK_APP_ID="bs://your_app_id"
    
    # Optional: Your test suite ID on BrowserStack (required for running tests)
@@ -221,7 +222,7 @@ This project includes Fastlane lanes for building and testing the app on Browser
 2. **For GitHub Actions**, add these secrets:
    - `BROWSERSTACK_USERNAME`: Your BrowserStack username
    - `BROWSERSTACK_ACCESS_KEY`: Your BrowserStack access key
-   - `BROWSERSTACK_APP_ID`: (Optional) Your BrowserStack app ID. If not provided, a unique ID will be generated automatically based on the repository name and commit hash.
+   - `BROWSERSTACK_APP_ID`: (Optional) Your BrowserStack app ID. If not provided, the app will be built and uploaded to BrowserStack first, which will take additional time.
 
 ### Available BrowserStack Lanes
 
@@ -319,6 +320,28 @@ To use this workflow:
 # Check test results from BrowserStack
 npm run browserstack-check-results
 ```
+
+### Getting a BrowserStack App ID
+
+To get a BrowserStack App ID for faster testing:
+
+1. **Build and upload your app to BrowserStack**:
+   ```bash
+   # Build and upload the app to BrowserStack
+   bundle exec fastlane browserstack
+   ```
+
+2. **Note the App ID from the output**:
+   After uploading, Fastlane will output a message like:
+   ```
+   App uploaded to BrowserStack successfully!
+   For future runs, add this app ID as a GitHub secret for faster testing:
+   BROWSERSTACK_APP_ID=bs://12345abcdef67890
+   ```
+
+3. **Add the App ID to your environment**:
+   - For local development: Add to your `.env` file
+   - For GitHub Actions: Add as a repository secret
 
 ### Creating and Uploading Test Suites
 
