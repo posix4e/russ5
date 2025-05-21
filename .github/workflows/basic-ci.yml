@@ -1,0 +1,22 @@
+name: Basic CI
+
+on:
+  push:
+    branches: [ main, simplified-cicd ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    name: Basic Test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run basic command
+        run: |
+          echo "Hello, GitHub Actions!"
+          echo "Current directory: $(pwd)"
+          echo "Files in directory:"
+          ls -la

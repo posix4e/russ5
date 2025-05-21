@@ -1,0 +1,48 @@
+{
+  "name": "russ5",
+  "version": "1.0.0",
+  "description": "Safari extension build and verification - Simplified",
+  "scripts": {
+    "create-dirs": "mkdir -p ./logs ./dist ./build/ipa ./build/logs",
+    "validate-js": "node ./scripts/validate-js.js",
+    "mock-validate-js": "node ./scripts/mock-validate-js.js",
+    
+    "verify-certificates": "bundle exec fastlane verify_certificates",
+    "build-extension": "bundle exec fastlane build_extension",
+    "run-ui-tests": "bundle exec fastlane run_ui_tests",
+    "deploy-testflight": "bundle exec fastlane beta",
+    "deploy-appstore": "bundle exec fastlane release",
+    
+    "browserstack-create-testsuite": "node ./scripts/create-browserstack-test-suite.js",
+    "browserstack-upload-testsuite": "node ./scripts/upload-browserstack-testsuite.js",
+    "browserstack-run-tests": "node ./scripts/run-browserstack-tests.js",
+    "browserstack-check-results": "node ./scripts/check-browserstack-results.js",
+    
+    "ci": "npm run create-dirs && npm run validate-js && npm run verify-certificates && npm run build-extension",
+    "ci-test": "npm run ci && npm run run-ui-tests",
+    "ci-deploy": "npm run ci-test && npm run deploy-testflight",
+    "ci-release": "npm run ci-deploy && npm run deploy-appstore",
+    "ci-mock": "npm run create-dirs && npm run mock-validate-js",
+    
+    "load-env": "node -e \"const fs=require('fs');const path=require('path');const envPath=path.resolve(process.cwd(),'.env');if(fs.existsSync(envPath)){console.log('Loading environment variables from .env file...');const envContent=fs.readFileSync(envPath,'utf8');const envVars=envContent.split('\\n').filter(line=>line.trim()&&!line.startsWith('#')).map(line=>line.split('=',2)).reduce((acc,[key,value])=>{if(key&&value){acc[key.trim()]=value.trim();}return acc;},{});Object.entries(envVars).forEach(([key,value])=>{process.env[key]=value;console.log(`Set ${key}=${value.substring(0,3)}${'*'.repeat(Math.max(0,value.length-3))}`);})}else{console.log('.env file not found, using existing environment variables.');}\""
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/posix4e/russ5.git"
+  },
+  "keywords": [
+    "safari",
+    "extension",
+    "ios",
+    "macos"
+  ],
+  "author": "Russ Garrett",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/posix4e/russ5/issues"
+  },
+  "homepage": "https://github.com/posix4e/russ5#readme",
+  "devDependencies": {
+    "dotenv": "^16.3.1"
+  }
+}

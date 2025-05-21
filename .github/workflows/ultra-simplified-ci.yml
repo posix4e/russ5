@@ -1,0 +1,41 @@
+name: Ultra Simplified CI/CD
+
+on:
+  push:
+    branches: [ main, simplified-cicd ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  validate:
+    name: Validate
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Create directories
+        run: npm run create-dirs
+
+      - name: Validate JavaScript (Mock)
+        run: npm run mock-validate-js
+
+      - name: Create artifact
+        run: |
+          mkdir -p artifacts
+          echo "This is a test artifact" > artifacts/test.txt
+          
+      - name: Upload artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: validation-artifact
+          path: artifacts/
+          retention-days: 1

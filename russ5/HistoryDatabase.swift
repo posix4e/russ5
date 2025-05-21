@@ -10,8 +10,8 @@ class HistoryDatabase {
         defaults = UserDefaults(suiteName: "group.xyz.russ.russ5")
     }
 
-    func addHistoryItem(url: URL, title: String?) {
-        let newItem = WebHistoryItem(url: url, title: title)
+    func addHistoryItem(url: URL, title: String?, pageDescription: String?, previewImageURL: URL?, faviconURL: URL?, articleText: String?) {
+        let newItem = WebHistoryItem(url: url, title: title, pageDescription: pageDescription, previewImageURL: previewImageURL, faviconURL: faviconURL, articleText: articleText)
         var history = getHistory()
         history.insert(newItem, at: 0) // Add to the top for recent first
 
@@ -24,6 +24,7 @@ class HistoryDatabase {
     }
 
     func getHistory() -> [WebHistoryItem] {
+        // The rest of the function remains the same
         guard let defaults = defaults else {
             print("Error: UserDefaults suite not found.")
             return []
@@ -38,6 +39,7 @@ class HistoryDatabase {
     }
 
     private func saveHistory(_ history: [WebHistoryItem]) {
+        // The rest of the function remains the same
         guard let defaults = defaults else {
             print("Error: UserDefaults suite not found for saving.")
             return
@@ -51,6 +53,7 @@ class HistoryDatabase {
     }
     
     func clearHistory() {
+        // The rest of the function remains the same
         guard let defaults = defaults else {
             print("Error: UserDefaults suite not found for clearing.")
             return
